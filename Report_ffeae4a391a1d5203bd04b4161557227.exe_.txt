@@ -1,0 +1,5744 @@
+capa report:
+md5                     ffeae4a391a1d5203bd04b4161557227
+sha1                    7c7013dd8def75c94828b40ffa139b6d89ec4683
+sha256                  81fc45c95bdb421257645b4ff91a6afc82201d3ffe570c059994d79ff1484f90
+path                    ffeae4a391a1d5203bd04b4161557227.exe_
+timestamp               2023-11-05T04:23:47.103874
+capa version            v3.2.0-0-gd9d72ad
+os                      windows
+format                  pe
+arch                    i386
+extractor               VivisectFeatureExtractor
+base address            0x400000
+rules                   /tmp/_MEIoORrmP/rules
+function count          340
+library function count  9
+total feature count     22043
+
+inspect load icon resource
+namespace  anti-analysis
+author     michael.hunhoff@mandiant.com
+scope      basic block
+basic block @ 0x40E340 in function 0x40E340
+  and:
+    api: user32.LoadIcon @ 0x40E372
+    number: 0x0 @ 0x40E380, 0x40E3E5
+    mnemonic: test @ 0x40E3F4
+    not:
+      or: = predefined icon identifiers
+        number: 0x7F05 = IDI_WINLOGO
+        number: 0x7F06 = IDI_SHIELD
+        number: 0x7F02 = IDI_QUESTION
+        number: 0x7F00 = IDI_APPLICATION
+        number: 0x7F04 = (IDI_ASTERISK | IDI_INFORMATION)
+        number: 0x7F01 = (IDI_ERROR | IDI_HAND)
+        number: 0x7F03 = (IDI_EXCLAMATION | IDI_WARNING)
+
+log keystrokes via polling (3 matches)
+namespace  collection/keylog
+author     michael.hunhoff@mandiant.com
+scope      function
+att&ck     Collection::Input Capture::Keylogging [T1056.001]
+mbc        Collection::Keylogging::Polling [F0002.002]
+examples   Practical Malware Analysis Lab 11-03.dll_:0x10001030
+function @ 0x406880
+  or:
+    api: user32.GetKeyState @ 0x406A24, 0x406A36
+function @ 0x406A0A
+  or:
+    api: user32.GetKeyState @ 0x406A24, 0x406A36
+function @ 0x4071D0
+  or:
+    api: user32.GetKeyState @ 0x407274, 0x407282, 0x407290
+
+receive data
+namespace    communication
+author       william.ballenthin@mandiant.com
+description  all known techniques for receiving data from a potential C2 server
+scope        function
+mbc          Command and Control::C2 Communication::Receive Data [B0030.002]
+examples     BFB9B5391A13D0AFD787E87AB90F14F5:0x13145D60
+function @ 0x408500
+  or:
+    match: read data from Internet @ 0x408500
+      and:
+        or:
+          api: wininet.InternetReadFile @ 0x4085CE
+
+send data (2 matches)
+namespace    communication
+author       william.ballenthin@mandiant.com, joakim@intezer.com
+description  all known techniques for sending data to a potential C2 server
+scope        function
+mbc          Command and Control::C2 Communication::Send Data [B0030.001]
+examples     BFB9B5391A13D0AFD787E87AB90F14F5:0x13145D60
+function @ 0x407500
+  or:
+    and:
+      os: windows
+      or:
+        match: send file via HTTP @ 0x40763A
+          and:
+            api: wininet.InternetWriteFile @ 0x407645
+function @ 0x4083E0
+  or:
+    and:
+      os: windows
+      or:
+        match: send HTTP request @ 0x4083E0
+          or:
+            and:
+              or:
+                api: wininet.HttpOpenRequest @ 0x408444
+              or:
+                api: wininet.HttpSendRequestEx @ 0x4084C3
+
+connect to HTTP server
+namespace  communication/http/client
+author     michael.hunhoff@mandiant.com
+scope      function
+mbc        Communication::HTTP Communication::Connect to Server [C0002.009]
+examples   6f99a2c8944cb02ff28c6f9ced59b161:0x40E2F0
+function @ 0x408380
+  and:
+    api: wininet.InternetConnect @ 0x4083AD
+
+create HTTP request
+namespace  communication/http/client
+author     michael.hunhoff@mandiant.com
+scope      function
+mbc        Communication::HTTP Communication::Create Request [C0002.012]
+examples   6f99a2c8944cb02ff28c6f9ced59b161:0x40E2F0
+function @ 0x408320
+  and:
+    api: wininet.InternetOpen @ 0x408338
+
+read data from Internet
+namespace  communication/http/client
+author     michael.hunhoff@mandiant.com
+scope      function
+mbc        Communication::HTTP Communication::Get Response [C0002.017]
+examples   6f99a2c8944cb02ff28c6f9ced59b161:0x40D590
+function @ 0x408500
+  and:
+    or:
+      api: wininet.InternetReadFile @ 0x4085CE
+
+send HTTP request
+namespace  communication/http/client
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        Communication::HTTP Communication::Send Request [C0002.003]
+examples   BFB9B5391A13D0AFD787E87AB90F14F5:0x13145D60, 6A352C3E55E8AE5ED39DC1BE7FB964B1:0x100026E0
+function @ 0x4083E0
+  or:
+    and:
+      or:
+        api: wininet.HttpOpenRequest @ 0x408444
+      or:
+        api: wininet.HttpSendRequestEx @ 0x4084C3
+
+send file via HTTP
+namespace  communication/http/client
+author     matthew.williams@mandiant.com
+scope      basic block
+mbc        Communication::HTTP Communication::Send Data [C0002.005]
+examples   3d760b6fc84571c928bed835863fc302:0x403687
+basic block @ 0x40763A in function 0x407500
+  and:
+    api: wininet.InternetWriteFile @ 0x407645
+
+encode data using XOR (15 matches)
+namespace  data-manipulation/encoding/xor
+author     moritz.raabe@mandiant.com
+scope      basic block
+att&ck     Defense Evasion::Obfuscated Files or Information [T1027]
+mbc        Defense Evasion::Obfuscated Files or Information::Encoding-Standard Algorithm [E1027.m02], Data::Encode Data::XOR [C0026.002]
+examples   2D3EDC218A90F03089CC01715A9F047F:0x403D7E
+basic block @ 0x401A20 in function 0x4019D0
+  and:
+    characteristic: tight loop @ 0x401A20
+    characteristic: nzxor @ 0x401A34, 0x401A3E
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x4031F0 in function 0x4030F0
+  and:
+    characteristic: tight loop @ 0x4031F0
+    characteristic: nzxor @ 0x4031F0
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x404FF1 in function 0x404FE0
+  and:
+    characteristic: tight loop @ 0x404FF1
+    characteristic: nzxor @ 0x404FF6
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x405040 in function 0x405020
+  and:
+    characteristic: tight loop @ 0x405040
+    characteristic: nzxor @ 0x405047, 0x405055, 0x405063, 0x40506A
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x405090 in function 0x405020
+  and:
+    characteristic: tight loop @ 0x405090
+    characteristic: nzxor @ 0x405092, 0x40509E, 0x4050AF, 0x4050B5
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x407B84 in function 0x407A70
+  and:
+    characteristic: tight loop @ 0x407B84
+    characteristic: nzxor @ 0x407B89
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x407BB6 in function 0x407A70
+  and:
+    characteristic: tight loop @ 0x407BB6
+    characteristic: nzxor @ 0x407BBB
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x40A400 in function 0x40A310
+  and:
+    characteristic: tight loop @ 0x40A400
+    characteristic: nzxor @ 0x40A400
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x40ACD0 in function 0x40AA30
+  and:
+    characteristic: tight loop @ 0x40ACD0
+    characteristic: nzxor @ 0x40ACD0
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x40F111 in function 0x40F0D0
+  and:
+    characteristic: tight loop @ 0x40F111
+    characteristic: nzxor @ 0x40F125, 0x40F12C
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x40F840 in function 0x40F770
+  and:
+    characteristic: tight loop @ 0x40F840
+    characteristic: nzxor @ 0x40F840
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x410705 in function 0x410650
+  and:
+    characteristic: tight loop @ 0x410705
+    characteristic: nzxor @ 0x41070F, 0x41071C, 0x410725, 0x410730, and 5 more...
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x410B91 in function 0x410B50
+  and:
+    characteristic: tight loop @ 0x410B91
+    characteristic: nzxor @ 0x410BA5, 0x410BAC
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x410CF0 in function 0x410C20
+  and:
+    characteristic: tight loop @ 0x410CF0
+    characteristic: nzxor @ 0x410CF0
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+basic block @ 0x410DD1 in function 0x410DA0
+  and:
+    characteristic: tight loop @ 0x410DD1
+    characteristic: nzxor @ 0x410DD1
+    not: = filter for potential false positives
+      or:
+        or: = unsigned bitwise negation operation (~i)
+          number: 0xFFFFFFFF = bitwise negation for unsigned 32 bits
+          number: 0xFFFFFFFFFFFFFFFF = bitwise negation for unsigned 64 bits
+        or: = signed bitwise negation operation (~i)
+          number: 0xFFFFFFF = bitwise negation for signed 32 bits
+          number: 0xFFFFFFFFFFFFFFF = bitwise negation for signed 64 bits
+        or: = Magic constants used in the implementation of strings functions.
+          number: 0x7EFEFEFF = optimized string constant for 32 bits
+          number: 0x81010101 = -0x81010101 = 0x7EFEFEFF
+          number: 0x81010100 = 0x81010100 = ~0x7EFEFEFF
+          number: 0x7EFEFEFEFEFEFEFF = optimized string constant for 64 bits
+          number: 0x8101010101010101 = -0x8101010101010101 = 0x7EFEFEFEFEFEFEFF
+          number: 0x8101010101010100 = 0x8101010101010100 = ~0x7EFEFEFEFEFEFEFF
+
+create new key via CryptAcquireContext (3 matches)
+namespace   data-manipulation/encryption
+author      chuong.dong@mandiant.com
+scope       function
+att&ck      Defense Evasion::Obfuscated Files or Information [T1027]
+mbc         Cryptography::Encryption Key [C0028]
+references  https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptacquirecontexta
+examples    E5369AC309F1BE6D77AFEEB3EDAB0ED8:0x401350
+function @ 0x4046A0
+  and:
+    api: advapi32.CryptAcquireContext @ 0x4046D1, 0x4046EA
+    or:
+      number: 0x18 = CRYPT_NEWKEYSET | CRYPT_DELETEKEYSET @ 0x4046C7, 0x4046E0
+function @ 0x4047A0
+  and:
+    api: advapi32.CryptAcquireContext @ 0x4047D7, 0x4047F0
+    or:
+      number: 0x8 = CRYPT_NEWKEYSET @ 0x40480B
+      number: 0x18 = CRYPT_NEWKEYSET | CRYPT_DELETEKEYSET @ 0x4047CD, 0x4047E6
+function @ 0x404DE0
+  and:
+    api: advapi32.CryptAcquireContext @ 0x404E0C
+    or:
+      number: 0x8 = CRYPT_NEWKEYSET @ 0x404DF0, 0x404E1D, 0x404E45, 0x404E54, and 1 more...
+
+encrypt or decrypt via WinCrypt (4 matches)
+namespace  data-manipulation/encryption
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Defense Evasion::Obfuscated Files or Information [T1027]
+mbc        Cryptography::Decrypt Data [C0031], Cryptography::Encrypt Data [C0027]
+examples   A45E377DBB98A6B44FD4034BC3FFF9B0:0x4017A0
+function @ 0x404970
+  and:
+    or:
+      api: CryptEncrypt @ 0x4049B1
+function @ 0x4049E0
+  and:
+    or:
+      api: CryptEncrypt @ 0x404A07
+function @ 0x404AD0
+  and:
+    or:
+      api: CryptDecrypt @ 0x404B17
+function @ 0x404B40
+  and:
+    or:
+      api: CryptDecrypt @ 0x404BD4
+
+import public key
+namespace  data-manipulation/encryption
+author     william.ballenthin@mandiant.com
+scope      function
+mbc        Cryptography::Encryption Key::Import Public Key [C0028.001]
+examples   ffeae4a391a1d5203bd04b4161557227:0x4047A0
+function @ 0x4047A0
+  and:
+    api: advapi32.CryptAcquireContext @ 0x4047D7, 0x4047F0
+    api: crypt32.CryptImportPublicKeyInfo @ 0x404824
+
+encrypt data using AES via WinAPI (2 matches)
+namespace  data-manipulation/encryption/aes
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Defense Evasion::Obfuscated Files or Information [T1027]
+mbc        Defense Evasion::Obfuscated Files or Information::Encryption-Standard Algorithm [E1027.m05], Cryptography::Encrypt Data::AES [C0027.001]
+examples   BC577119D1A5B7DA489E7B5817D3CC38:0x10002FAC
+function @ 0x4040C0
+  and:
+    or:
+      api: CryptGenKey @ 0x404161
+    or:
+      number: 0x6610 = CALG_AES_256 @ 0x404127
+    optional:
+      or:
+        number: 0x1 = PROV_RSA_FULL @ 0x404157, 0x4041A9, 0x40421E, 0x4042A7, and 1 more...
+function @ 0x4077C0
+  and:
+    or:
+      api: CryptGenKey @ 0x407852
+    or:
+      number: 0x660E = CALG_AES_128 @ 0x407821
+    optional:
+      or:
+        number: 0x1 = PROV_RSA_FULL @ 0x4077E7, 0x40784A, 0x4078F5, 0x407923, and 1 more...
+
+reference public RSA key
+namespace  data-manipulation/encryption/rsa
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        Cryptography::Encryption Key [C0028]
+examples   b7b5e1253710d8927cbe07d52d2d2e10:0x417DF0
+function @ 0x40F9C0
+  or:
+    bytes: 06 02 00 00 00 A4 00 00 52 53 41 31 @ 0x40F9FA
+
+hash data via WinCrypt
+namespace  data-manipulation/hashing
+author     michael.hunhoff@mandiant.com
+scope      function
+mbc        Cryptography::Cryptographic Hash [C0029]
+examples   03B236B23B1EC37C663527C1F53AF3FE:0x18002E46B
+function @ 0x404DE0
+  and:
+    api: advapi32.CryptHashData @ 0x404E5F
+
+initialize hashing via WinCrypt
+namespace  data-manipulation/hashing
+author     michael.hunhoff@mandiant.com
+scope      function
+function @ 0x404DE0
+  and:
+    api: advapi32.CryptCreateHash @ 0x404E34
+
+hash data using SHA1
+namespace  data-manipulation/hashing/sha1
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        Cryptography::Cryptographic Hash::SHA1 [C0029.002]
+examples   D063B1804E8D2BB26BD2E097141C1BBC:0x4344D0
+function @ 0x404DE0
+  or:
+    subscope:
+      and:
+        number: 0x8004 = CALG_SHA1 @ 0x404E2D
+        api: advapi32.CryptCreateHash @ 0x404E34
+
+hash data using SHA1 via WinCrypt
+namespace  data-manipulation/hashing/sha1
+author     michael.hunhoff@mandiant.com
+scope      function
+function @ 0x404DE0
+  or:
+    and:
+      match: initialize hashing via WinCrypt @ 0x404DE0
+        and:
+          api: advapi32.CryptCreateHash @ 0x404E34
+      number: 0x8004 = CALG_SHA1 @ 0x404E2D
+      api: advapi32.CryptHashData @ 0x404E5F
+
+generate random numbers using a Mersenne Twister (3 matches)
+namespace  data-manipulation/prng/mersenne
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        Cryptography::Generate Pseudo-random Sequence::Mersenne Twister [C0021.005]
+examples   D9630C174B8FF5C0AA26168DF523E63E:0x41A850
+function @ 0x404FE0
+  or:
+    number: 0x6C078965 @ 0x404FFB
+function @ 0x405020
+  or:
+    number: 0xFF3A58AD @ 0x40510D
+function @ 0x407A70
+  or:
+    number: 0x6C078965 @ 0x407B8E, 0x407BC0
+
+contain a resource (.rsrc) section
+namespace  executable/pe/section/rsrc
+author     moritz.raabe@mandiant.com
+scope      file
+examples   A933A1A402775CFA94B6BEE0963F4B46:0x41fd25
+section: .rsrc @ 0x418000
+
+extract resource via kernel32 functions (3 matches)
+namespace  executable/resource
+author     william.ballenthin@mandiant.com
+scope      function
+examples   BF88E1BD4A3BDE10B419A622278F1FF7:0x401000, Practical Malware Analysis Lab 01-04.exe_:0x4011FC, 563653399B82CD443F120ECEFF836EA3678D4CF11D9B351BB737573C2D856299:0x140001ABA
+function @ 0x40AA30
+  or:
+    and:
+      or:
+        api: kernel32.LoadResource @ 0x40AB73
+        api: kernel32.LockResource @ 0x40AB82
+      optional:
+        or:
+          api: kernel32.FindResourceEx @ 0x40AB42
+        api: kernel32.SizeofResource @ 0x40AB58
+function @ 0x40BE30
+  or:
+    and:
+      or:
+        api: kernel32.LoadResource @ 0x40BE70
+        api: kernel32.LockResource @ 0x40BE7B
+      optional:
+        or:
+          api: kernel32.FindResourceEx @ 0x40BE48
+        api: kernel32.SizeofResource @ 0x40BE5C
+function @ 0x40BF80
+  or:
+    and:
+      or:
+        api: kernel32.LoadResource @ 0x40C032
+        api: kernel32.LockResource @ 0x40C041
+      optional:
+        or:
+          api: kernel32.FindResourceEx @ 0x40C00D
+        api: kernel32.SizeofResource @ 0x40C01F
+
+accept command line arguments (2 matches)
+namespace  host-interaction/cli
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Execution::Command and Scripting Interpreter [T1059]
+examples   e5369ac309f1be6d77afeeb3edab0ed8:0x402760
+function @ 0x4010C0
+  or:
+    api: CommandLineToArgv @ 0x4010D8
+function @ 0x401DA0
+  or:
+    api: GetCommandLine @ 0x401DD7
+
+open clipboard
+namespace  host-interaction/clipboard
+author     michael.hunhoff@mandiant.com
+scope      function
+att&ck     Collection::Clipboard Data [T1115]
+examples   6f99a2c8944cb02ff28c6f9ced59b161:0x403180
+function @ 0x408D70
+  and:
+    api: user32.OpenClipboard @ 0x408DD4
+    optional:
+      api: user32.CloseClipboard @ 0x408DF2
+
+replace clipboard data
+namespace  host-interaction/clipboard
+author     michael.hunhoff@mandiant.com
+scope      function
+mbc        Impact::Clipboard Modification [E1510]
+examples   6f99a2c8944cb02ff28c6f9ced59b161:0x403180
+function @ 0x408D70
+  and:
+    match: write clipboard data @ 0x408D70
+      and:
+        api: user32.SetClipboardData @ 0x408DE7
+        optional:
+          match: open clipboard @ 0x408D70
+            and:
+              api: user32.OpenClipboard @ 0x408DD4
+              optional:
+                api: user32.CloseClipboard @ 0x408DF2
+    api: user32.EmptyClipboard @ 0x408DDE
+    optional:
+      match: open clipboard @ 0x408D70
+        and:
+          api: user32.OpenClipboard @ 0x408DD4
+          optional:
+            api: user32.CloseClipboard @ 0x408DF2
+
+write clipboard data
+namespace  host-interaction/clipboard
+author     michael.hunhoff@mandiant.com
+scope      function
+mbc        Impact::Clipboard Modification [E1510]
+examples   6F99A2C8944CB02FF28C6F9CED59B161:0x403180
+function @ 0x408D70
+  and:
+    api: user32.SetClipboardData @ 0x408DE7
+    optional:
+      match: open clipboard @ 0x408D70
+        and:
+          api: user32.OpenClipboard @ 0x408DD4
+          optional:
+            api: user32.CloseClipboard @ 0x408DF2
+
+query environment variable (2 matches)
+namespace  host-interaction/environment-variable
+author     michael.hunhoff@mandiant.com, @_re_fox
+scope      function
+att&ck     Discovery::System Information Discovery [T1082]
+examples   Practical Malware Analysis Lab 14-02.exe_:0x401880, 0761142efbda6c4b1e801223de723578:0x65483490
+function @ 0x4023C0
+  or:
+    api: kernel32.ExpandEnvironmentStrings @ 0x40245F
+function @ 0x40EE50
+  or:
+    api: kernel32.GetEnvironmentVariable @ 0x40EE6D
+
+get common file path (3 matches)
+namespace  host-interaction/file-system
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Discovery::File and Directory Discovery [T1083]
+examples   Practical Malware Analysis Lab 03-02.dll_:0x10003415, 972B219F18379907A045431303F4DA7D:0x404887
+function @ 0x4023C0
+  or:
+    api: kernel32.GetTempPath @ 0x4023E2
+function @ 0x405140
+  or:
+    api: kernel32.GetTempPath @ 0x40515C
+function @ 0x405910
+  or:
+    api: shell32.SHGetFolderPath @ 0x405A30
+
+get file system object information
+namespace  host-interaction/file-system
+author     michael.hunhoff@mandiant.com
+scope      basic block
+att&ck     Discovery::File and Directory Discovery [T1083]
+examples   50D5EE1CE2CA5E30C6B1019EE64EEEC2:0x403538
+basic block @ 0x40E5B3 in function 0x40E590
+  or:
+    api: SHGetFileInfo @ 0x40E5EC
+
+copy file
+namespace  host-interaction/file-system/copy
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        File System::Copy File [C0045]
+examples   Practical Malware Analysis Lab 01-01.exe_:0x401440
+function @ 0x40F0D0
+  or:
+    api: kernel32.CopyFileEx @ 0x40F1C9
+
+delete file (5 matches)
+namespace  host-interaction/file-system/delete
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        File System::Delete File [C0047]
+examples   946A99F36A46D335DEC080D9A4371940:0x100015F0, 31600AD0D1A7EA615690DF111AE36C73:0x401A15, 563653399B82CD443F120ECEFF836EA3678D4CF11D9B351BB737573C2D856299:0x140001E04
+function @ 0x401000
+  or:
+    api: kernel32.DeleteFile @ 0x401020
+function @ 0x4055E0
+  or:
+    api: kernel32.DeleteFile @ 0x4055F0
+function @ 0x40BF80
+  or:
+    api: kernel32.DeleteFile @ 0x40C0C5, 0x40C159
+function @ 0x40EE50
+  or:
+    api: kernel32.DeleteFile @ 0x40F01B
+function @ 0x40F0D0
+  or:
+    api: kernel32.DeleteFile @ 0x40F1AB, 0x40F2DC
+
+check if file exists
+namespace  host-interaction/file-system/exists
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Discovery::File and Directory Discovery [T1083]
+examples   31600AD0D1A7EA615690DF111AE36C73:0x401284
+function @ 0x4044A0
+  or:
+    subscope:
+      and:
+        api: kernel32.GetFileAttributes @ 0x404637
+        mnemonic: cmp @ 0x404640
+        number: 0xFFFFFFFF = INVALID_FILE_ATTRIBUTES @ 0x40462B
+
+enumerate files recursively
+namespace  host-interaction/file-system/files/list
+author     @_re_fox
+scope      function
+att&ck     Discovery::File and Directory Discovery [T1083]
+examples   5f66b82558ca92e54e77f216ef4c066c:0x40640E
+function @ 0x405600
+  and:
+    characteristic: recursive call @ 0x405600
+    or:
+      match: enumerate files via kernel32 functions @ 0x405600
+        and:
+          or:
+            api: kernel32.FindNextFile @ 0x405793
+          optional:
+            api: kernel32.FindClose @ 0x4057C6
+            match: contain loop @ 0x405600
+              or:
+                characteristic: loop @ 0x405600
+                characteristic: recursive call @ 0x405600
+          or:
+            api: kernel32.FindFirstFile @ 0x405646
+
+enumerate files via kernel32 functions
+namespace  host-interaction/file-system/files/list
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Discovery::File and Directory Discovery [T1083]
+examples   Practical Malware Analysis Lab 01-01.exe_:0x4011E0, Practical Malware Analysis Lab 20-02.exe_:0x401000
+function @ 0x405600
+  and:
+    or:
+      api: kernel32.FindNextFile @ 0x405793
+    optional:
+      api: kernel32.FindClose @ 0x4057C6
+      match: contain loop @ 0x405600
+        or:
+          characteristic: loop @ 0x405600
+          characteristic: recursive call @ 0x405600
+    or:
+      api: kernel32.FindFirstFile @ 0x405646
+
+get file attributes
+namespace  host-interaction/file-system/meta
+author     michael.hunhoff@mandiant.com
+scope      basic block
+mbc        File System::Get File Attributes [C0049]
+examples   03B236B23B1EC37C663527C1F53AF3FE:0x180019824, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x4028B6, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x4029E0
+basic block @ 0x40460A in function 0x4044A0
+  or:
+    api: kernel32.GetFileAttributes @ 0x404637
+
+get file size (2 matches)
+namespace  host-interaction/file-system/meta
+author     michael.hunhoff@mandiant.com
+scope      function
+att&ck     Discovery::File and Directory Discovery [T1083]
+examples   mimikatz.exe_:0x40630D
+function @ 0x403F30
+  or:
+    api: kernel32.GetFileSizeEx @ 0x403F8C
+function @ 0x4040C0
+  or:
+    api: kernel32.GetFileSizeEx @ 0x4040E4
+
+set file attributes (9 matches)
+namespace  host-interaction/file-system/meta
+author     moritz.raabe@mandiant.com, michael.hunhoff@mandiant.com
+scope      basic block
+att&ck     Defense Evasion::File and Directory Permissions Modification [T1222]
+mbc        File System::Set File Attributes [C0050]
+examples   946A99F36A46D335DEC080D9A4371940:0x100015f0, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x4028B6
+basic block @ 0x401010 in function 0x401000
+  or:
+    api: kernel32.SetFileAttributes @ 0x401019
+basic block @ 0x40465C in function 0x4044A0
+  or:
+    api: kernel32.SetFileAttributes @ 0x404660
+basic block @ 0x4055E0 in function 0x4055E0
+  or:
+    api: kernel32.SetFileAttributes @ 0x4055E9
+basic block @ 0x40C0A5 in function 0x40BF80
+  or:
+    api: kernel32.SetFileAttributes @ 0x40C0B8
+basic block @ 0x40C140 in function 0x40BF80
+  or:
+    api: kernel32.SetFileAttributes @ 0x40C14C
+basic block @ 0x40F002 in function 0x40EE50
+  or:
+    api: kernel32.SetFileAttributes @ 0x40F00E
+basic block @ 0x40F190 in function 0x40F0D0
+  or:
+    api: kernel32.SetFileAttributes @ 0x40F1A2
+basic block @ 0x40F1D7 in function 0x40F0D0
+  or:
+    api: kernel32.SetFileAttributes @ 0x40F1E0
+basic block @ 0x40F2C7 in function 0x40F0D0
+  or:
+    api: kernel32.SetFileAttributes @ 0x40F2D3
+
+move file
+namespace  host-interaction/file-system/move
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        File System::Move File [C0063]
+examples   Practical Malware Analysis Lab 01-04.exe_:0x401350
+function @ 0x4044A0
+  or:
+    api: kernel32.MoveFileEx @ 0x40464E
+
+read file on Windows (2 matches)
+namespace  host-interaction/file-system/read
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        File System::Read File [C0051]
+examples   BFB9B5391A13D0AFD787E87AB90F14F5:0x1314567B
+function @ 0x403D00
+  and:
+    os: windows
+    or:
+      api: kernel32.ReadFile @ 0x403D39
+function @ 0x4052E0
+  and:
+    os: windows
+    or:
+      api: kernel32.ReadFile @ 0x405305
+
+write file on Windows (5 matches)
+namespace  host-interaction/file-system/write
+author     william.ballenthin@mandiant.com
+scope      function
+mbc        File System::Writes File [C0052]
+examples   Practical Malware Analysis Lab 01-04.exe_:0x4011FC, 563653399B82CD443F120ECEFF836EA3678D4CF11D9B351BB737573C2D856299:0x1400025C4
+function @ 0x403DF0
+  and:
+    os: windows
+    or:
+      api: kernel32.WriteFile @ 0x403EB4, 0x403ECE
+function @ 0x403F30
+  and:
+    os: windows
+    or:
+      api: kernel32.WriteFile @ 0x404045
+function @ 0x4040C0
+  and:
+    os: windows
+    or:
+      api: kernel32.WriteFile @ 0x40432A
+function @ 0x40BF80
+  and:
+    os: windows
+    or:
+      api: kernel32.WriteFile @ 0x40C07B
+function @ 0x40EE50
+  and:
+    os: windows
+    or:
+      api: kernel32.WriteFile @ 0x40EF45
+
+get graphical window text (2 matches)
+namespace  host-interaction/gui/window/get-text
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        Discovery::Application Window Discovery::Window Text [E1010.m01]
+examples   B7841B9D5DC1F511A93CC7576672EC0C:0x10007A50, Practical Malware Analysis Lab 11-03.dll_:0x10001000
+function @ 0x40D650
+  or:
+    and:
+      api: user32.GetWindowText @ 0x40D683
+function @ 0x40E340
+  or:
+    and:
+      subscope:
+        and:
+          number: 0xD = WM_GETTEXT @ 0x40E43F
+          api: user32.SendMessage @ 0x40E46E, 0x40E495
+
+hide graphical window (6 matches)
+namespace  host-interaction/gui/window/hide
+author     michael.hunhoff@mandiant.com
+scope      basic block
+att&ck     Defense Evasion::Hide Artifacts::Hidden Window [T1564.003]
+examples   39C05B15E9834AC93F206BC114D0A00C357C888DB567BA8F5345DA0529CBED41:0x10007250
+basic block @ 0x40AABF in function 0x40AA30
+  and:
+    number: 0x0 = SW_HIDE @ 0x40AABF, 0x40AAE6, 0x40AAF7
+    api: user32.ShowWindow @ 0x40AAC5
+basic block @ 0x40AB13 in function 0x40AA30
+  and:
+    number: 0x0 = SW_HIDE @ 0x40AB13
+    api: user32.ShowWindow @ 0x40AB16
+basic block @ 0x40BC21 in function 0x40B980
+  and:
+    number: 0x0 = SW_HIDE @ 0x40BC34, 0x40BC36
+    api: user32.ShowWindow @ 0x40BC78
+basic block @ 0x40DA96 in function 0x40DA50
+  and:
+    number: 0x0 = SW_HIDE @ 0x40DAC2
+    api: user32.ShowWindow @ 0x40DAD8
+basic block @ 0x40DDE0 in function 0x40DDE0
+  and:
+    number: 0x0 = SW_HIDE @ 0x40DDEB, 0x40DDFF, 0x40DE01
+    api: user32.ShowWindow @ 0x40DDF3
+basic block @ 0x40EC16 in function 0x40EBD0
+  and:
+    number: 0x0 = SW_HIDE @ 0x40EC16
+    api: user32.ShowWindow @ 0x40EC1E
+
+get disk information (2 matches)
+namespace  host-interaction/hardware/storage
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Discovery::System Information Discovery [T1082]
+examples   9324D1A8AE37A36AE560C37448C9705A:0x4052A0, 972B219F18379907A045431303F4DA7D:0x41064E
+function @ 0x403010
+  or:
+    api: kernel32.GetDriveType @ 0x40301B
+    api: kernel32.GetVolumeInformation @ 0x40303C
+function @ 0x4030F0
+  or:
+    api: kernel32.GetDriveType @ 0x40330C
+    api: kernel32.GetLogicalDrives @ 0x403105
+    api: kernel32.GetVolumeInformation @ 0x403336
+
+get disk size (2 matches)
+namespace   host-interaction/hardware/storage
+author      michael.hunhoff@mandiant.com
+scope       function
+att&ck      Discovery::System Information Discovery [T1082]
+references  https://github.com/LordNoteworthy/al-khaser/blob/master/al-khaser/AntiVM/Generic.cpp#L347
+examples    al-khaser_x86.exe_:0x4343D0, al-khaser_x86.exe_:0x434010
+function @ 0x403010
+  or:
+    api: kernel32.GetDiskFreeSpaceEx @ 0x403058
+function @ 0x4030F0
+  or:
+    api: kernel32.GetDiskFreeSpaceEx @ 0x403358
+
+check mutex and exit
+namespace  host-interaction/mutex
+author     @_re_fox, moritz.raabe@mandiant.com
+scope      function
+mbc        Process::Check Mutex [C0043], Process::Terminate Process [C0018]
+examples   1d8fd13c890060464019c0f07b928b1a:0x402eb0, Practical Malware Analysis Lab 11-03.dll_:0x10001410
+function @ 0x4019D0
+  and:
+    match: create mutex @ 0x4019D0
+      or:
+        api: kernel32.CreateMutex @ 0x401A79
+    or:
+      or:
+        and:
+          api: GetLastError @ 0x401A8D
+          or:
+            number: 0xB7 = ERROR_ALREADY_EXISTS @ 0x401A93
+
+create mutex (2 matches)
+namespace  host-interaction/mutex
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        Process::Create Mutex [C0042]
+examples   Practical Malware Analysis Lab 01-01.dll_:0x10001010
+function @ 0x4019D0
+  or:
+    api: kernel32.CreateMutex @ 0x401A79
+function @ 0x410B50
+  or:
+    api: kernel32.CreateMutex @ 0x410BE3
+
+get hostname
+namespace  host-interaction/os/hostname
+author     moritz.raabe@mandiant.com, joakim@intezer.com
+scope      function
+att&ck     Discovery::System Information Discovery [T1082]
+examples   9324D1A8AE37A36AE560C37448C9705A:0x4052A0, 7351f8a40c5450557b24622417fc478d:0x405438
+function @ 0x401400
+  or:
+    api: kernel32.GetComputerName @ 0x4014EA
+
+get system information on Windows
+namespace  host-interaction/os/info
+author     moritz.raabe@mandiant.com, joakim@intezer.com
+scope      function
+att&ck     Discovery::System Information Discovery [T1082]
+examples   563653399B82CD443F120ECEFF836EA3678D4CF11D9B351BB737573C2D856299:0x140002280
+function @ 0x4096F0
+  and:
+    os: windows
+    or:
+      api: kernel32.GetNativeSystemInfo @ 0x409850
+
+check OS version
+namespace  host-interaction/os/version
+author     michael.hunhoff@mandiant.com, johnk3r
+scope      function
+att&ck     Discovery::System Information Discovery [T1082]
+examples   493167E85E45363D09495D0841C30648:0x401000
+function @ 0x4096F0
+  and:
+    mnemonic: cmp @ 0x409713, 0x409725, 0x40972E, 0x409748, and 14 more...
+    or:
+      api: GetVersionEx @ 0x409705
+    or:
+      and:
+        number: 0x5 = Windows 2000 @ 0x40972E, 0x4097B0, 0x4097D6
+        optional:
+          or:
+            number: 0x0 @ 0x40982F, 0x409845, 0x40987B, 0x409882
+            number: 0x1 = Windows XP @ 0x409725, 0x40973C, 0x409748, 0x409787, and 1 more...
+            number: 0x2 = Windows XP 64-bit / Windows Server 2003 / Windows Server 2003 R2 @ 0x409713, 0x40974D, 0x409759, 0x409795, and 3 more...
+      and:
+        number: 0x6 = Windows Vista / Windows Server 2008 @ 0x40976C, 0x40978C, 0x4097C7
+        optional:
+          or:
+            number: 0x0 @ 0x40982F, 0x409845, 0x40987B, 0x409882
+            number: 0x1 = Windows Server 2008 R2 / Windows 7 @ 0x409725, 0x40973C, 0x409748, 0x409787, and 1 more...
+            number: 0x2 = Windows Server 2012 / Windows 8 @ 0x409713, 0x40974D, 0x409759, 0x409795, and 3 more...
+            number: 0x3 = Windows Server 2012 R2 / Windows 8.1 @ 0x4097A7, 0x4097BE
+
+create process on Windows (5 matches)
+namespace  host-interaction/process/create
+author     moritz.raabe@mandiant.com
+scope      basic block
+mbc        Process::Create Process [C0017]
+examples   9324D1A8AE37A36AE560C37448C9705A:0x406DB0, Practical Malware Analysis Lab 01-04.exe_:0x4011FC
+basic block @ 0x401950 in function 0x401950
+  and:
+    os: windows
+    or:
+      api: shell32.ShellExecuteEx @ 0x401991
+basic block @ 0x4019A6 in function 0x401950
+  and:
+    os: windows
+    or:
+      api: shell32.ShellExecuteEx @ 0x4019B1
+basic block @ 0x408F8D in function 0x408F50
+  and:
+    os: windows
+    or:
+      api: kernel32.CreateProcess @ 0x408FB0
+basic block @ 0x40F232 in function 0x40F0D0
+  and:
+    os: windows
+    or:
+      api: kernel32.CreateProcess @ 0x40F27A
+basic block @ 0x4109FD in function 0x410990
+  and:
+    os: windows
+    or:
+      api: kernel32.CreateProcess @ 0x410A4E
+
+terminate process
+namespace  host-interaction/process/terminate
+author     moritz.raabe@mandiant.com
+scope      function
+mbc        Process::Terminate Process [C0018]
+examples   C91887D861D9BD4A5872249B641BC9F9:0x401A77, 9B7CCAA2AE6A5B96E3110EBCBC4311F6:0x10010307
+function @ 0x401E40
+  and:
+    or:
+      api: kernel32.ExitProcess @ 0x401E49
+
+create or open registry key (18 matches)
+namespace  host-interaction/registry
+author     michael.hunhoff@mandiant.com
+scope      basic block
+mbc        Operating System::Registry::Create Registry Key [C0036.004], Operating System::Registry::Open Registry Key [C0036.003]
+examples   Practical Malware Analysis Lab 03-02.dll_:0x10004706, Practical Malware Analysis Lab 11-01.exe_:0x401000, 493167E85E45363D09495D0841C30648:0x404D60, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x4045F2, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x40433E
+basic block @ 0x4022AD in function 0x402230
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x4022E2
+basic block @ 0x40295B in function 0x402910
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x40298A
+basic block @ 0x4029EB in function 0x402910
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x402A10
+basic block @ 0x403150 in function 0x4030F0
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x403182
+basic block @ 0x409050 in function 0x409050
+  or:
+    api: advapi32.RegCreateKeyEx @ 0x40907E
+basic block @ 0x409100 in function 0x409100
+  or:
+    api: advapi32.RegCreateKeyEx @ 0x409131
+basic block @ 0x40941D in function 0x4093E0
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x409429
+basic block @ 0x40A36A in function 0x40A310
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x40A399
+basic block @ 0x40AC29 in function 0x40AA30
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x40AC58
+basic block @ 0x40F325 in function 0x40F300
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x40F357
+basic block @ 0x40F7A7 in function 0x40F770
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x40F7D6
+basic block @ 0x40FCC6 in function 0x40FB10
+  or:
+    api: advapi32.RegCreateKeyEx @ 0x40FCFB
+basic block @ 0x4102F8 in function 0x40FF50
+  or:
+    api: advapi32.RegCreateKeyEx @ 0x410320
+basic block @ 0x4103DB in function 0x4103B0
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x410400
+basic block @ 0x410C5A in function 0x410C20
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x410C8C
+basic block @ 0x410DE6 in function 0x410DA0
+  or:
+    api: advapi32.RegCreateKeyEx @ 0x410E0E
+basic block @ 0x410FA0 in function 0x410F20
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x410FC3
+basic block @ 0x411157 in function 0x4110E0
+  or:
+    api: advapi32.RegOpenKeyEx @ 0x411175
+
+query or enumerate registry key
+namespace  host-interaction/registry
+author     michael.hunhoff@mandiant.com
+scope      function
+att&ck     Discovery::Query Registry [T1012]
+mbc        Operating System::Registry::Query Registry Key [C0036.005]
+examples   493167E85E45363D09495D0841C30648:0x404930, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x402608
+function @ 0x4093E0
+  and:
+    optional:
+      match: create or open registry key @ 0x40941D
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x409429
+    or:
+      api: advapi32.RegEnumKeyEx @ 0x4094AA, 0x4094DC
+
+query or enumerate registry value (8 matches)
+namespace  host-interaction/registry
+author     william.ballenthin@mandiant.com, michael.hunhoff@mandiant.com
+scope      function
+att&ck     Discovery::Query Registry [T1012]
+mbc        Operating System::Registry::Query Registry Value [C0036.006]
+examples   BFB9B5391A13D0AFD787E87AB90F14F5:0x13145B5A, Practical Malware Analysis Lab 03-02.dll_:0x100047AD
+function @ 0x4030F0
+  and:
+    optional:
+      match: create or open registry key @ 0x403150
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x403182
+    or:
+      api: advapi32.RegQueryValueEx @ 0x4031AC
+function @ 0x409180
+  and:
+    or:
+      api: advapi32.RegQueryValueEx @ 0x409199, 0x40922F, 0x409262
+function @ 0x4092E0
+  and:
+    or:
+      api: advapi32.RegQueryValueEx @ 0x409304
+function @ 0x40A310
+  and:
+    optional:
+      match: create or open registry key @ 0x40A36A
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x40A399
+    or:
+      api: advapi32.RegQueryValueEx @ 0x40A3C2
+function @ 0x40AA30
+  and:
+    optional:
+      match: create or open registry key @ 0x40AC29
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x40AC58
+    or:
+      api: advapi32.RegQueryValueEx @ 0x40AC8A
+function @ 0x40F770
+  and:
+    optional:
+      match: create or open registry key @ 0x40F7A7
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x40F7D6
+    or:
+      api: advapi32.RegQueryValueEx @ 0x40F800
+function @ 0x410C20
+  and:
+    optional:
+      match: create or open registry key @ 0x410C5A
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x410C8C
+    or:
+      api: advapi32.RegQueryValueEx @ 0x410CB0
+function @ 0x411020
+  and:
+    or:
+      api: advapi32.RegEnumValue @ 0x41104A
+
+set registry value (5 matches)
+namespace  host-interaction/registry/create
+author     moritz.raabe@mandiant.com, michael.hunhoff@mandiant.com
+scope      function
+mbc        Operating System::Registry::Set Registry Key [C0036.001]
+examples   BFB9B5391A13D0AFD787E87AB90F14F5:0x13147AF0, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x40433E, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x40415E
+function @ 0x409050
+  or:
+    and:
+      optional:
+        match: create or open registry key @ 0x409050
+          or:
+            api: advapi32.RegCreateKeyEx @ 0x40907E
+      or:
+        api: advapi32.RegSetValueEx @ 0x4090D2
+function @ 0x409100
+  or:
+    and:
+      optional:
+        match: create or open registry key @ 0x409100
+          or:
+            api: advapi32.RegCreateKeyEx @ 0x409131
+      or:
+        api: advapi32.RegSetValueEx @ 0x40914C
+function @ 0x40FB10
+  or:
+    and:
+      optional:
+        match: create or open registry key @ 0x40FCC6
+          or:
+            api: advapi32.RegCreateKeyEx @ 0x40FCFB
+      or:
+        api: advapi32.RegSetValueEx @ 0x40FD19
+function @ 0x40FF50
+  or:
+    and:
+      optional:
+        match: create or open registry key @ 0x4102F8
+          or:
+            api: advapi32.RegCreateKeyEx @ 0x410320
+      or:
+        api: advapi32.RegSetValueEx @ 0x41033A
+function @ 0x410DA0
+  or:
+    and:
+      optional:
+        match: create or open registry key @ 0x410DE6
+          or:
+            api: advapi32.RegCreateKeyEx @ 0x410E0E
+      or:
+        api: advapi32.RegSetValueEx @ 0x410E32
+
+delete registry key
+namespace  host-interaction/registry/delete
+author     moritz.raabe@mandiant.com, michael.hunhoff@mandiant.com, johnk3r
+scope      function
+att&ck     Defense Evasion::Modify Registry [T1112]
+mbc        Operating System::Registry::Delete Registry Key [C0036.002]
+examples   4f11bdb380dafa2518053c6d20147a05:0x402A36, 493167E85E45363D09495D0841C30648:0x404D60
+function @ 0x409380
+  and:
+    or:
+      api: advapi32.RegDeleteKey @ 0x4093BE
+
+delete registry value (2 matches)
+namespace  host-interaction/registry/delete
+author     michael.hunhoff@mandiant.com
+scope      function
+att&ck     Defense Evasion::Modify Registry [T1112]
+mbc        Operating System::Registry::Delete Registry Value [C0036.007]
+examples   B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x4041A0
+function @ 0x40F300
+  and:
+    optional:
+      match: create or open registry key @ 0x40F325
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x40F357
+    or:
+      api: advapi32.RegDeleteValue @ 0x40F36A
+function @ 0x4110E0
+  and:
+    optional:
+      match: create or open registry key @ 0x411157
+        or:
+          api: advapi32.RegOpenKeyEx @ 0x411175
+    or:
+      api: advapi32.RegDeleteValue @ 0x41118C
+
+create thread
+namespace  host-interaction/thread/create
+author     moritz.raabe@mandiant.com, michael.hunhoff@mandiant.com, joakim@intezer.com
+scope      basic block
+mbc        Process::Create Thread [C0038]
+examples   946A99F36A46D335DEC080D9A4371940:0x10001DA0, B5F85C26D7AA5A1FB4AF5821B6B5AB9B:0x408020
+basic block @ 0x4095B7 in function 0x409580
+  or:
+    and:
+      os: windows
+      or:
+        api: kernel32.CreateThread @ 0x4095C9
+
+resume thread
+namespace  host-interaction/thread/resume
+author     0x534a@mailbox.org
+scope      basic block
+mbc        Process::Resume Thread [C0054]
+examples   Practical Malware Analysis Lab 12-02.exe_:0x4010EA, 787cbc8a6d1bc58ea169e51e1ad029a637f22560660cc129ab8a099a745bd50e:0x4044C7
+basic block @ 0x4095D3 in function 0x409580
+  or:
+    api: kernel32.ResumeThread @ 0x4095DE
+
+mine cryptocurrency
+namespace   impact/cryptocurrency
+author      moritz.raabe@mandiant.com
+scope       file
+att&ck      Impact::Resource Hijacking [T1496]
+references  https://github.com/ctxis/CAPE/blob/master/modules/signatures/cryptomining.py
+or:
+  string: "Bitcoin" @ 0x12170
+  string: "Bitcoin" @ 0x12170
+
+link function at runtime on Windows (7 matches)
+namespace  linking/runtime-linking
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Execution::Shared Modules [T1129]
+examples   9324D1A8AE37A36AE560C37448C9705A:0x404130, Practical Malware Analysis Lab 01-04.exe_:0x401350
+function @ 0x405320
+  and:
+    os: windows
+    optional:
+      characteristic: indirect call @ 0x405389
+    or:
+      api: kernel32.GetProcAddress @ 0x405344
+    or:
+      api: kernel32.GetModuleHandle @ 0x405334
+function @ 0x4053A0
+  and:
+    os: windows
+    optional:
+      characteristic: indirect call @ 0x405409
+    or:
+      api: kernel32.GetProcAddress @ 0x4053C4
+    or:
+      api: kernel32.GetModuleHandle @ 0x4053B4
+function @ 0x405910
+  and:
+    os: windows
+    optional:
+      characteristic: indirect call @ 0x405A56
+    or:
+      api: kernel32.GetProcAddress @ 0x4059F5
+    or:
+      api: kernel32.GetModuleHandle @ 0x4059E5
+function @ 0x408230
+  and:
+    os: windows
+    optional:
+      characteristic: indirect call @ 0x4082D0
+    or:
+      api: kernel32.GetProcAddress @ 0x408255
+    or:
+      api: kernel32.LoadLibrary @ 0x40823A
+function @ 0x409380
+  and:
+    os: windows
+    optional:
+      characteristic: indirect call @ 0x4093D4
+    or:
+      api: kernel32.GetProcAddress @ 0x4093A3
+    or:
+      api: kernel32.GetModuleHandle @ 0x40939C
+function @ 0x409FF0
+  and:
+    os: windows
+    optional:
+      characteristic: indirect call @ 0x40A022, 0x40A02E, 0x40A0FC, 0x40A116, and 3 more...
+    or:
+      api: kernel32.GetProcAddress @ 0x40A2D4
+    or:
+      api: kernel32.LoadLibrary @ 0x40A2C2
+function @ 0x40F3A0
+  and:
+    os: windows
+    optional:
+      characteristic: indirect call @ 0x40F3DF, 0x40F412
+    or:
+      api: kernel32.GetProcAddress @ 0x40F3BA
+    or:
+      api: kernel32.GetModuleHandle @ 0x40F3B3
+
+persist via Run registry key (3 matches)
+namespace  persistence/registry/run
+author     moritz.raabe@mandiant.com
+scope      function
+att&ck     Persistence::Boot or Logon Autostart Execution::Registry Run Keys / Startup Folder [T1547.001]
+examples   Practical Malware Analysis Lab 06-03.exe_:0x401130, b87e9dd18a5533a09d3e48a7a1efbcf6:0x1400070E0, 9ff8e68343cc29c1036650fc153e69f7:0x470624
+function @ 0x402230
+  and:
+    or:
+      number: 0x80000001 = HKEY_CURRENT_USER @ 0x4022D1
+    or:
+      and:
+        regex: /Software\\Microsoft\\Windows\\CurrentVersion/i
+          - "Software\\Microsoft\\Windows\\CurrentVersion\\Run" @ 0x4022C9
+        or:
+          regex: /Run/i
+            - "Software\\Microsoft\\Windows\\CurrentVersion\\Run" @ 0x4022C9
+function @ 0x409050
+  and:
+    or:
+      match: set registry value @ 0x409050
+        or:
+          and:
+            optional:
+              match: create or open registry key @ 0x409050
+                or:
+                  api: advapi32.RegCreateKeyEx @ 0x40907E
+            or:
+              api: advapi32.RegSetValueEx @ 0x4090D2
+      number: 0x80000001 = HKEY_CURRENT_USER @ 0x409076
+    or:
+      and:
+        regex: /Software\\Microsoft\\Windows\\CurrentVersion/i
+          - "Software\\Microsoft\\Windows\\CurrentVersion\\Run" @ 0x40906E
+        or:
+          regex: /Run/i
+            - "Software\\Microsoft\\Windows\\CurrentVersion\\Run" @ 0x40906E
+function @ 0x40F300
+  and:
+    or:
+      number: 0x80000001 = HKEY_CURRENT_USER @ 0x40F32F, 0x40F34F
+    or:
+      and:
+        regex: /Software\\Microsoft\\Windows\\CurrentVersion/i
+          - "Software\\Microsoft\\Windows\\CurrentVersion\\Run" @ 0x40F347
+        or:
+          regex: /Run/i
+            - "Software\\Microsoft\\Windows\\CurrentVersion\\Run" @ 0x40F347
+
+identify system language via API
+namespace  targeting/language
+author     william.ballenthin@mandiant.com
+scope      function
+att&ck     Discovery::System Location Discovery::System Language Discovery [T1614.001]
+examples   9b7ccaa2ae6a5b96e3110ebcbc4311f6:0x10001F96
+function @ 0x40F3A0
+  and:
+    os: windows
+    or:
+      api: GetUserDefaultUILanguage @ 0x40F4BD
+
+
+
+
+
+
+detect it easy report:
+PE32
+    Compiler: Microsoft Visual C/C++(17.00.60610)[LTCG/C++]
+    Linker: Microsoft Linker(11.00.60610)
+    Tool: Visual Studio(2012)
+
+
+
+
+strings report:
+!This program cannot be run in DOS mode.
+Rich
+.text
+`.rdata
+@.data
+.rsrc
+@.reloc
+5H!A
+5<rA
+5<rA
+5<rA
+5<rA
+ru9f
+ukVj
+5<rA
+uqPj
+ SVW
+5<rA
+t$QW
+5<rA
+5<rA
+9~ v
+G;~ r
+5<rA
+F\PLA
+5<rA
+5<rA
+5<rA
+Qh@%A
+5<rA
+5<rA
+t%QV
+5<rA
+5<rA
+5<rA
+tEQV
+5<rA
+SVWh
+5<rA
+5<rA
+5<rA
+_^[]
+5<rA
+5<rA
+5<rA
+5<rA
+_^[]
+5<rA
+5<rA
+5<rA
+t{W3
+SVWj
+D$(P
+D$$Pj
+D$(P
+D$,PQ
+5<rA
+9sTv 
+=@"A
+F;sTr
+5<rA
+D$Pj
+D$8f
+D$ (
+D$ t
+D$ Pj
+8SVW
+PQh`LA
+PQhtLA
+=H!A
+5<rA
+5<rA
+(SVj
+P,^[
+9wPv"
+t+F;wPr
+P,^[3
+h<2A
+h<2A
+D$<Ph
+D$@l
+D$,P
+D$dP
+D$8PWh
+|$,l
+|$`l
+u^hl
+D$dj
+D$PP
+D$dl
+D$@P
+D$TP
+D$Dj
+t$$2
+D$,j
+D$,Pj
+D$(Pj
+D$4P
+D$PP
+D$$P
+D$<j
+D$<Pj
+D$@j
+D$@Pj
+D$tj
+DLpA;
+D$0j
+D$0Pj
+D$H(
+D$\5
+D$Ht
+D$ j
+D$ Pj
+FLt%A
+F\PLA
+5<rA
+5<rA
+5<rA
+t^9u
+uW_^[
+5<rA
+PPPj
+hd2A
+Hu@h@
+hp3A
+hx2A
+u#h@
+Hu@h@
+hp3A
+hx2A
+u'h@
+QSVW
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+Pj,Q
+5<rA
+u#h@
+hp3A
+u Wj
+^@_]
+h44A
+.u$f
+SVHt3Hu'3
+u0hP4A
+h84A
+tySj
+f;NL
+Pj0W
+PQRW
+f;FL
+f;FT
+Gf;~T
+K09M
+f;KT
+f;CT
+RQWSPj
+5<rA
+5<rA
+F,Pj
+^T[f
+tG_^3
+t3_^3
+5<rA
+t[Vj
+wwww
+5<rA
+u	_^2
+5<rA
+5<rA
+9O,vn
+5<rA
+5<rA
+;O,r
+5<rA
+5<rA
+@ VW
+5<rA
+5<rA
+5<rA
+=( A
+5<rA
+5<rA
+,SVW
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+tAWj
+5<rA
+5<rA
+5<rA
+_^[]
+5<rA
+5<rA
+5<rA
+QWh,5A
+SVhD5A
+5<rA
+5<rA
+5<rA
+t	VQj
+t	VQj
+hl5A
+hx5A
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5H!A
+5<rA
+5<rA
+G< u&
+<zv1
+VSQWj
+5<rA
+t#SVQ
+5<rA
+WPVj
+QSVW
+5<rA
+6PRW
+5<rA
+t5_^
+t#Vj
+5<rA
+5<rA
+_^Y]
+h,MA
+QSVW
+5<rA
+tIVj
+5<rA
+BW_^[
+VVVV
+PSVW
+5<rA
+QSVW
+QSVW
+97v1
+@;7r
+hHrA
+=XrA
+=PrA
+=TrA
+=^sA
+hHrA
+5<rA
+Qj<P
+QSVW
+f948
+_^[]
+f;FLsh
+}#9E
+u*Gf;~Lr
+5<rA
+5<rA
+ SVW
+=0"A
+t4+E
+HtwH
+tEHt
+hT6A
+5<rA
+h$6A
+t(h<6A
+D$ Ph
+D$(l
+D$LP
+D$ Pj
+|$Hl
+u`hl
+D$Lj
+D$8P
+D$Ll
+D$<P
+D$(P
+D$,P
+D$8P
+D$<P
+D$(P
+D$(j
+D$4SVWj
+h`6A
+D$DP
+t$(Q
+D$Pf
+D$Tf
+D$Xf
+D$4P
+D$XP
+D$8P
+t$ S
+t7Ht#
+Qhp6A
+=$!A
+u#j(
+=(!A
+Qht6A
+\$0f
+D$$j
+D$4Ph
+D$ l
+L$(Qj
+uehl
+D$8P
+D$$P
+D$<P
+D$(j
+D$$P
+D$( l@
+5<rA
+thjZS
+~Bjt
+D$Lj
+D$Ht
+D$HPj
+5<rA
+t@@f;
+t7Ht#
+F 07A
+D0 p7A
+5<rA
+5<rA
+@_^[
+5<rA
+5<rA
+5<rA
+5<rA
+D$ +D$
+QSVW
+tjVP
+5<rA
+5<rA
+=@rA
+t 9]
+hhMA
+5<rA
+WSRQ
+_^[]
+_^[]
+5p"A
+RSQj
+QVS3
+f91tT
+QWS3
+AHFJu
+u	IN
+1_^[]
+HFJu
+1_^[]
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+8_^3
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+5<rA
+t{S+
+CG;]
+5<rA
+D$|P
+D$|P
+f;D$
+f;D$
+DT<B
+D$<P
+D$|P
+D$4f
+D$(4
+=d"A
+D$|P
+D$@P
+f;FTs_
+f;D$
+r-f;
+Gf;~Tr
+QSPP
+tFPj
+6PhQ
+5<rA
+h(*A
+5<rA
+@Pha
+F(_3
+~5QP
+PhT6A
+tAj8
+5<rA
+5<rA
+t6Bf;
+t9Ht$
+F \:A
+D0 d:A
+5<rA
+SVWh
+Pht:A
+QPPPh
+=H!A
+5<rA
+PSWV
+t	9]
+=H!A
+5<rA
+=H!A
+PhX;A
+u`j@P
+5<rA
+	nA|
+f93t%
+hh;A
+TPht;A
+t|jD
+5<rA
+5<rA
+SVWh
+5<rA
+5<rA
+F<^]
+D$$Ph
+D$$l
+D$<P
+|$8l
+u\hl
+D$<j
+D$(P
+D$<l
+D$,P
+D$IP
+D$$P
+t?@;
+Ph`LA
+5<rA
+tl@;
+t/@;
+tY@;
+PhtLA
+SVWj
+PQh`LA
+RSA1uL
+5<rA
+D$(Pj
+D$PP
+D$8Pj
+D$PP
+D$(Pj
+D$ Pj
+D$DhTLA
+D$ P
+D$\Pj
+oD$ f
+D$0f
+5<rA
+t$4j
+D$ j
+D$ Pj
+5<rA
+f93t%
+QhP%A
+D$(l
+u`hl
+D$(P
+D$ P
+D$,P
+D$$j
+5<rA
+h,MA
+5<rA
+h,MA
+SVWQ
+5<rA
+%<$A
+%($A
+%,$A
+%@$A
+RSA1
+GetFileInformationByHandleEx
+SetFileInformationByHandle
+SHGetKnownFolderPath
+version=%u&id=%u
+ObtainUserAgentString
+POST
+HTTP/1.1
+Connection: Close
+RegDeleteKeyExW
+LaunchConnectionDialog
+%AMOUNT_USD%
+%AMOUNT_EUR%
+%AMOUNT_BTC%
+%BITCOIN_ADDRESS%
+GetUserPreferredUILanguages
+/home/
+co.uk
+info
+_purecall
+_vsnwprintf
+_vsnprintf
+memmove
+msvcrt.dll
+ExitProcess
+GetCommandLineW
+SetErrorMode
+WaitForSingleObject
+GetComputerNameW
+SetEvent
+GetModuleHandleW
+GetCurrentThread
+GetModuleFileNameW
+SetThreadPriority
+GetHandleInformation
+GetLastError
+CreateEventW
+CloseHandle
+LocalFree
+GetDriveTypeW
+GetLogicalDrives
+GetTempPathW
+ResetEvent
+WaitForMultipleObjects
+GetDiskFreeSpaceExW
+GetVolumeInformationW
+ExpandEnvironmentStringsW
+MoveFileExW
+GetTickCount
+Sleep
+GetFileAttributesW
+CreateFileW
+SetFileAttributesW
+QueryPerformanceCounter
+InitializeCriticalSection
+LeaveCriticalSection
+EnterCriticalSection
+DeleteCriticalSection
+SetFilePointerEx
+SetFileTime
+WriteFile
+ReadFile
+FlushFileBuffers
+GetFileSizeEx
+SetLastError
+GetFileTime
+DeleteFileW
+FindFirstFileW
+FindClose
+FindNextFileW
+LoadLibraryW
+FreeLibrary
+GetProcAddress
+WideCharToMultiByte
+MultiByteToWideChar
+lstrcmpA
+GlobalLock
+GlobalAlloc
+GlobalUnlock
+GlobalFree
+CreateMutexW
+ReleaseMutex
+FindResourceExW
+LoadResource
+SizeofResource
+LockResource
+CreateProcessW
+CreateThread
+ResumeThread
+SystemTimeToFileTime
+FileTimeToSystemTime
+FileTimeToLocalFileTime
+GetSystemTime
+GetNativeSystemInfo
+GetVersionExW
+GetDateFormatW
+GetTimeFormatW
+GetCurrentThreadId
+CreateActCtxW
+ActivateActCtx
+DeactivateActCtx
+ReleaseActCtx
+HeapReAlloc
+HeapAlloc
+HeapFree
+GetProcessHeap
+GetEnvironmentVariableW
+CopyFileExW
+GetUserDefaultUILanguage
+KERNEL32.dll
+DispatchMessageW
+PeekMessageW
+TranslateMessage
+MsgWaitForMultipleObjects
+PostQuitMessage
+CharLowerW
+ReleaseDC
+GetDC
+MoveWindow
+SetWindowTextW
+GetDlgCtrlID
+SendMessageW
+GetDlgItem
+IntersectRect
+DrawFocusRect
+BeginPaint
+GetClientRect
+GetParent
+DrawTextW
+GetWindowRect
+ScreenToClient
+EndPaint
+GetKeyState
+SetScrollInfo
+UpdateWindow
+GetSystemMetrics
+ScrollWindowEx
+SystemParametersInfoW
+GetScrollInfo
+SetClipboardData
+OpenClipboard
+EmptyClipboard
+CloseClipboard
+LoadIconW
+DestroyMenu
+SetMenuDefaultItem
+CreatePopupMenu
+GetCursorPos
+AppendMenuW
+TrackPopupMenu
+GetCaretPos
+GetClassNameW
+GetWindowLongW
+ClientToScreen
+InSendMessage
+MessageBoxIndirectW
+MessageBoxW
+IsDialogMessageW
+GetForegroundWindow
+ReplyMessage
+SetForegroundWindow
+UnregisterClassW
+MonitorFromPoint
+CreateDialogParamW
+EndDialog
+SetWindowLongW
+DialogBoxParamW
+DefWindowProcW
+GetMonitorInfoW
+IsWindowVisible
+AdjustWindowRectEx
+CreateWindowExW
+ShowWindow
+SetWindowPos
+MonitorFromWindow
+GetWindowTextW
+InvalidateRect
+FlashWindowEx
+RegisterClassExW
+SetFocus
+PostMessageW
+SetTimer
+DestroyWindow
+USER32.dll
+CryptExportKey
+CryptAcquireContextW
+CryptSetKeyParam
+CryptGetKeyParam
+CryptReleaseContext
+CryptImportKey
+CryptEncrypt
+CryptGenKey
+CryptDestroyKey
+CryptDecrypt
+CryptGetHashParam
+CryptCreateHash
+CryptDestroyHash
+CryptHashData
+RegCreateKeyExW
+RegCloseKey
+RegQueryValueExW
+RegQueryInfoKeyW
+RegDeleteKeyW
+RegDeleteValueW
+RegEnumValueW
+RegOpenKeyExW
+RegFlushKey
+RegEnumKeyExW
+RegSetValueExW
+ADVAPI32.dll
+ShellExecuteExW
+CommandLineToArgvW
+SHGetFolderPathW
+SHGetFileInfoW
+SHELL32.dll
+SetWindowTheme
+UxTheme.dll
+GetDeviceCaps
+CreateFontIndirectW
+CreateSolidBrush
+GetObjectW
+CreateCompatibleDC
+SelectObject
+DeleteObject
+SetBkMode
+SetBkColor
+DeleteDC
+SetTextColor
+GetObjectA
+GDI32.dll
+InitCommonControlsEx
+COMCTL32.dll
+PathAddBackslashW
+PathRemoveBackslashW
+PathMatchSpecW
+StrCmpIW
+StrChrW
+StrCmpW
+StrCmpNW
+PathFindFileNameW
+PathRemoveFileSpecW
+PathUnquoteSpacesW
+PathQuoteSpacesW
+SHLWAPI.dll
+AlphaBlend
+MSIMG32.dll
+HttpSendRequestExA
+HttpQueryInfoA
+InternetConnectA
+InternetReadFile
+InternetWriteFile
+HttpOpenRequestA
+HttpEndRequestA
+HttpAddRequestHeadersA
+InternetOpenA
+InternetCloseHandle
+WININET.dll
+GdiplusShutdown
+GdipFree
+GdipCreateBitmapFromStream
+GdipAlloc
+GdipDisposeImage
+GdipCreateHBITMAPFromBitmap
+GdipCloneImage
+GdiplusStartup
+GdipDeleteBrush
+GdipCloneBrush
+GdipCreateFontFromLogfontA
+GdipSetStringFormatLineAlign
+GdipDeleteFont
+GdipDeleteGraphics
+GdipDrawImageRectI
+GdipSetStringFormatAlign
+GdipCreateSolidFill
+GdipDrawString
+GdipCreateFromHDC
+GdipSetStringFormatHotkeyPrefix
+GdipCreateStringFormat
+GdipDeleteStringFormat
+GdipCreateFontFromDC
+GdipGetImageHeight
+GdipGetImageWidth
+gdiplus.dll
+StringFromGUID2
+CoTaskMemFree
+CoUninitialize
+CoInitializeEx
+ole32.dll
+CryptStringToBinaryA
+CryptDecodeObjectEx
+CryptImportPublicKeyInfo
+CRYPT32.dll
+_except_handler3
+memcpy
+memset
+IHDR
+ cHRM
+	pHYs
+_IDATx
+.Wuu;v+n,KN
+	NA@DB(
+>>N@
+~Z}pz
+?CvI
+x6-p
+x14tC5t
+w~$w
+{bdp
+dhhe\
+	sd/w
+0\@Z
+{#~9l
+	(	HE.
++`)P
+zKck
+Az9S
+[:}3
+@x?{
+@\T}f
+/dT|&_
+I$TdK
+OK<w
+x9c^d
+#r$-.
+TG?0
+ja:t#n
+jgZ}
+NCU)
+B^ij
+m$5&
+kFoPV
+&~]|
+uv%tj
+)J!eK
+ST\xR
+(W{)G
+m,$ID
+<2;W#
+j]a\
+>]d?K|
+/SYR
+;\a+
+lHe}e
+MPAy<
+) V 
+4$00
+}U:|
++ 0'"i
+2SvC
+2<)QW
+$z//
+Nuzg*B
+2VPK
+r18C
+?(UB{
+pl-~$
+(x2[+
+=)Eb5
+q6|y
+paJ_
+jqYh
+zEf7
+,hD6
+TQY!
+*#GG
+Q7{z
+h}d+O
+h?}&$r
+{|Zg"
+mN\q
+J]GOg
+<VTV
+g'9P
+#K3?
+'#-B
+Y+gm
+p:|Z
+9\/0
+BFD]/
+m/wj
+y.I9+
+rp,q
+xw3X	
+`DTfs
+uA{e
+cqyq
+=U6[]D
+y%KC
+_J1kE
+[]:5J
+Z{V%[
+?a	$
+8>	T
+,/H+)
+/`zx
+Y,uq
+q_Tj
+dXQ8U
+fL3f
+Vw]E
+tpD{f1
+2j9W,
+>JzK!
+Lz)VGY
+5jPU
+?PI!
+2YNN
++FN%
+#n*\
+`f,=
+[r/<
+&x#\
+1kYn
+5aLU
+ddq5
+H$7/
+Vr+J
+5k*+
+s&].
+*ers
+Z"LD
+HF8#
+{1OwToM
+\w i
+4_rK@
+stE^
+;:.w
+3BqW
+G*(EDU
+.k	u
+`.hI
+1Kzy
+ROLERE
+=[=V
+{3h$
+B(a,6
+PZ45
+'P5qt
+DiB1yNb
+D^oibc
+vCe)
+^_ENl,{
+@\_M
+V Q]R
+R9l=
+"[3x<
+/wsTG
+LS:SY
+`B#U
+1c6^4;
+p*h4O
+<zz#Z
+/rfM
+g#^xz
+-xcV
+,=KY:
+NSA3
+^$\Q
+q;2F
+P[x~
+-bs[
+$Ez.
+A?QcD
+1on^J
+o9/i
+W%<ggZg^
+-JGa
+`=sk|
+]jj`
+"-Q)
+g,Kr6
+qZ0Y\:X
+9=t8t
+ji;t[TN
+sU'm>^&$
+V617c
+x]nJ
+00%|
+4i?IO_I
+V3@F
+1SHKA
+NgdX30
+AJ5c
+4omq~
+&ooH
+g={8
+L 8i^9+z
+VdXWaK
+'hm{
+}L0b
+_Nx]J
+e~B_
+1o'R)
+d%WP5
+FT7kC
+9 {CnJ7
++OW&
+u)t`
+9Q_q}
+hx$a
+]7,b
+kh'lP
+9'G5D
++#MBn
+ygS4
+nui7F
+;]V[
+}#9G
+::0^?^hN
+Fo%I
+gpwUV
+"6k!
+WT#!
+[#>w
+ACS8
+3DzUD0
+bRKm
+c-]N1
+elvj
+<3i'F*
+4x_`t
+K1kM
+N[a(
+gt$E
+[CF:
+JoGT
+I3cY
+>.Tul
+!TGRb
+"w{&
+I)gp
+ #s^?
+>-	f%
+KATc
+J5U5
+[Ym%r"
+o*b/
+2If$2a
+KLV%
+3q1\
+X/[2o[
+WTe0
+su_4/
+e1ox
+/$Mk7
+*.X:
+lT#)
+dS_/tY
+#^V0
+^~TE 
+M4_V$
+VzI)W
+}/@O6
+bjhJ[hR
+cVz+
+#hn)2
+3TSN
+`.{?'
+5!g[ 
+xo0;|V
+^-XZ\
+hE?1
+H:r$b
+%I{I
+3Yxxj
+YqXh
+nH|I
+Vx,)
+H\9\
+U8)#
+nj4=
+V[5P
+v1P5
+RMV$S~
+kSSG
+v[RY9
+F|	1s
+"L\F
+8	}U
+`'|^
+#Jbho
+6dUmx
+F1MOg3*
+f=VB;-z
+VIES
+8-{C+
+hz|"
+pm}y
+3p`6
+25<`<
+oe4& 
+4\lF
+x.V`
+wCC?-y\
+9I!u
+[%4B
+V4~%~1
+qcQtxp
+[0+Y
+\QW	
+Pos,
+!k{G
+bsPgmh
+?5ll
+r=Wz)
+B4dC&b
+De9)
+6	{v
+dUu6
+vhg21
+I_jUV
+Z<d6+
+iE+>@&
+u%6B
+MD)H
+~ D5g
+:<px[
+r^(o
+pl,?
+tW30
+U	C,
+#prx
+YSR-
+lJIn
+6jvj
+049;K
+3n{|
+ep+]p
+'X9Q
+A+Q}9
+K2#3
+Xg@'9P
+\-r!
+*e.(
+>6=n
+/a=^NR-!
+j4,{'
+-k]1}f
+p+(*8
+dj!*R
+5$W*
+r~/4
+HN_>'
+%F_O
+=0IU
+ Jsh
+o"Z-
+&AI|
+;mFe
+	>Pb
+0&'.xS
+Z<s@
+*dI+
+&F|p(
+W:YSd&
+ji\N
+PhwI
+HX01
+?XQr_E
+$[0Z	
+#6bsN
+5kUb
+'n!Lb
+QXj/
+hpOsu
+w[|\
+x+:J4hf8
+ml5G
+"EL\Q
+\MJW#1OF
+*RSv
+|CHe
+0T"<
+9jj9
+;$Y6
+eXd.
+`Yp"M
+Ql>j
+uQ1.0
+6%g]|I
+=}.sm0
+X,uOZ
+[4@]
+`I5X
+qGF4
+`A-i3uD
+*M_MZ
+2X%p
+x.o'
+sbi=n
+qoy:n:'
+2"uOT
+%5d4
+v/`1
+6d<@j
+}5GB
+SCT_E=
+}'DQ
+&m](
+}FWA}
+r+h2
+@fj2S
+huHI+$C
+d@Qt
+'Mq)
+(<{-_
+v):Atd+:l|
+QDN 
+a?9h
+%j2}
+cjr4P8
+&SeU
+X\9\3\
+&jp9
+ u@.
+~@'\
+&^Pf
+6@LL
+moh2
+BJxm
+;	r2:
+*hO4
+Cx#K~
+56Qq
+XX}G
+5`qU
+omE,
+QZ3[*
+4 b(
+c&)5
+#Q2l
+&x.6
+Fg<'
+TM9}
+Z)kB
+<N,[$z
+XDGuS
+1}%}
+Bfz}
+TUdyA!M
+=iry
+K'o[
+PF]$>BR
+h._h
+INb'{
+eowl
+wk|D
+WL+Wa
+(Z.	
+zOlg4
+W%x9c
+lZuU
+-H68
+!ZEP
+Y L,
+oUfO<t
+'uv=W
+_9\'
+<v(k
+tn5_R
+Hhy,
+n`Nh!<
+v3R_f
+N]&7}^
+=NbU
+x5Qz
+_q8%
+1D\5
+[<.PI7
+dob0N
+\LbU
+8`3)X
+f&1;
+I9nK=
+N~QI
+`tUnud
+:;Ji
+3:$)-%
+miF/3]3
+:-oO
+g,=^
+H_E0
+=kG+
+Bru9
+`!o0
+Y#>T
+W<5<
+)Jm~
+!V(+'M-
+m.ko`
+H\Ux
+E@<G
+hr<5
+/`j4#^
+dY`F=
+'5SIn
+Ztzt
+J_h4
+no&=V+wDR%
+':2Y
+$im#
+1VBb9
+eOK7
+\Y5RmzE
+{*b/J
+b,CEC
+('xfP&
+j+e6
+7M&~O
+cRd9Qn
+A+VbA3Xq
+Z|CH
+nfJi
+4[]r
+P,	|
+lsCG8
+8RUF<t
+77:<
+`[Bs
+&+]oVX%
+`"?1
+{Is2
+-l5m
+ATTx
+8.GYU
+Gj*>
+O,<pq
+{I,Q
+,$Wg
+9>`S
+{BW>
+St&A
+u.u7=
+A/-)
+-&rQ
+'P6N
+fi03
+:AKs
+F\0/x
+PMk(d
+DcJ)
+RdRej
+fqky.
+5kuQI
+CaIA?
+vH')4
+l-~3|
+.D:Z
+wg|v
+7c.P
+:b/6I
+.9*;v
+DwUDeA1O
+0f}x|x|x|x
+d;5P
+1VSD
+lLaMY
+YH\5o=
+? >H
+A]h1i
+$@GT
++2+5
+6o	O
+_8Tg\
+3oz@
+<3[F
+5Y4[
+}*:WM
+R%lY
+o^/Z
+#^,p
+ZTjV	
+%!9a
+<UbQ!
+2P,8
+A^s'
+fPf_
+E2Ul
+1y+X
+><><><><~
+g]MV
+[)[<
+sCUu
+X7UQI
+h~ph
+5f%>
+qyV#	qp
+dNu6
+AU~`
+{]y/
+*J%L
+"dYx
+6*]V
+ccZfg
+j!yN
+Y6Rh|
+K}E.
+v'?{
+!,eJ
+o0lRy
+F(:8
+Flc]
+b.C:
+_YD(
+<+)W
+ufO"rb
+UTiV!
+:i*,
+Mg.>
+!X@e>X!X
+:}KU
+F"|%
+DHFdIC
+@^Y2yUw
+HQ)GQ
+9'V;l
+cacUm
++Y;5
+P3~d
+_dxr
+p>W}cD,-
+]pSvlQ*X
+=X5j
+S?E3
+NXxAYE
+Eg=r
+c!.F!
+0#/ee
+^xD"
+6_$T&%U
+$XT&
+N?c1
+pWH!y
+mAxI
+?0t_o
+<2=>
+RWFT
+fboS
+m"Ok)
+yO,X
+QcV+X
+{.=}
+l:oUk
+x;;pd
+Plb*
+{O&[
+Q@s`
+`%^f
+]__{
+KZ'/
+![n'n*
+S&X}
+94yt
+PLD*
+>7Fd
+]+X5j
+4|Hb
+'N$S
+U	Vu
+Eo'@
+/n?k
+~PVot
+N7?1
+};GN
+xbA2
+LW.4
+Tzb"9>
+9])(L
+CED8
+>>>u
+pgx4
+33+"R
+-;+5
+X}yd
+@(JX 
+mMM"
+yZdY
+MVP*h4
+=X5j
+!M)(
+z$yZ
+asn>:
+5Pd:
+drb:mw
+&VYZ
+s_M[
+\hmD
+{gf"X=H3=
+!XQX
+u3CtK
+E@G~
+`Ufs
+,2&w
+iiV,
+&5(O
+"EAp|
+A)YQ
+'xFu
+2Ix7
+Oo<wU
+t^q*
+0-zUWb
+^>PCT
+PVh<
+Ua`U~f	V
+s	\0"
+p:pD8
+@Uajx
+syd 
+[)oJ
+#aQ,D*/
+Kld=	^
+<Nl&V
+[?Aq
+>^	3
+kPT0
+co+0
+M/_4
+U#>5
+Zt{u
+&X5j
+qJ%6
+R!X%
+U95j
+,;"|_
+7"lT-V
+@GBD
+H13=
+#OdOf
+1y}7
+w 	@SA
+UgGQ
+f X==
+BX%X
+ycw7
+I@Ma0)J
+TyZB
+h~G4
+?V+X5j
+P .7
+`jZf
+qDHr
+3W)"
+Ue$W
+jbi_v
+3yi -
+@q7R
+@g$X
+o$Xe(|
+c!X=
+v	%_
+g&X=!X?B
+BgZ/
+<oNc
+K}M;=\
+(=xh
+126,]6i
+UeW$g
+vfmo0@
+su="
+$`AB
+dn3+
+5S"<*
+Ulf9
+U*Oq
+Y(Fx
+p^kv|
+s7nX
+vz^V;
+*wbo
+o^=4
+	V#R
+eJHVO
+&X5j
+4;vl
+rU'-
+&X5j
+yU%X
+]r*U
+PHpCf
+J	KS
+R	H[
+C&Xn
+h1T5
+!a,d
+XN_.
+)XfD
+;;|*
+T2Ct
+,DT<X
+"FQU
+#;I"h
+BE"\A
+i :}
+baWlS$(
+D(XW
+Z\1]Y
+&X5j
+1jOP
+Tj+h5
+Ind2
+U);9o
+/eI^M
+nEwJ
+k.nD
+$g@k^
+5f/>
+PyT)
+9X5j
+?hNB
+)p(=9F
+S(f,
+ODq4
+6 +L
+$-NA
+0}@H
+;sD}
+5f/*9X
+&Laio7
+woqp\
+ycwkL
+;>yx
+##Xa
+&X5j
+YcR#
+#XfV
+F8qr
+=a~"
++`vZ
+b:(z
+^!XA+
+h]uLC
+*{Jh
+'l	3
+cx{j
+ %1Z
+BY-T
+OLt_
+e+}\
+2y",K
+'X~pCC
+lIAU
+AeDh
+JFDb	k
+!XT)i
+'X}O
+PT67
+`P^5
+3"tI
+:M2f
+^){.c
+uQd8
+&X5j
+!!1,
+VORC
+rU<AuD
+5 ^a
+g&X3
+d=V	
+c:vt
+f4b5o8
+@Z%^yI
+[+X5j
+-Bcrwe8-
+,UQTeW
+hq.'
+Lh*L
+=JhS
+yC+V.
+w)e6
+]	=r~,
+,cAs
+"V)`L
+2L$ 
+YV$I1
+ONv	
+m-;m
+o~#RQ
+)rny
+-Gm:r
+r{"$
+y^LwsfnO
+_5CP
+!uRX
+)LT@
+r(.x
+ZAbK#P
+#aRTbo
+L3+F
+=clG
+W58#
+f&X~
+n'SD
+rPXi
+)	V_
+k	4RV 
+5$A4
+_MS s
+88~tr
+'H9Rs
+(taF
+^aT-"4
+l&X7o
+HpPJ
+'3g5
+5f/>
+LT0s
+1H[)
+,+t#
+s/9wy7
+Z#3Z
+``i1z
+j|*]8
+#d,1
+nA+Y
+]r)l
+=X5j
+$yVT
+"Z2'~
+;owy
++be IuwBRyR-
+nwwn?
+4>(;I
+f[\hu)ai
+t`@G
+,=oN
+HfLu
+3k& 
+=X!X
+V3jO%
+L3	X
+rV=Y
+a%Y1
+-jdy
+Gif9
+yg,\1
+$Os=
+V`5$6
+	Y(,=*
+)anO]
+U@~R
+sVUC
+HCk<
+Bb?Q
+d/n4
+$bU&DJ
+.dbh
+U95j
+?>u`
+mXj@K
+6.>sa#
+}A$^F
+KhV$6,#
+9cd/0
+.S`H
+q,7"
+Bujj%L
+faE>
+Wm^q
+#)-[2
+8;gLe&
+s)q5
+ASBUqv=Ip
+A&/}
+]{@2
+s O7i
+a5*n
+`+w\[
+cw51
+Ge{r
+v,BJZl# 
+_xN#
+h)!I1
+2J6LK
+`ozn
+5f)*9XF
+&X=/
+NXnm
+roO0
+8vx\
+	c&e
+n+P7
++EOVq
+!XW_y
+4*U14
+C""Ey^
+|q(P
+(xb:c
+Gjb*
+2%w&
+rhJX
+='_A
+,	l4
+WZjs
+p5m<
+dJ(W
+RY9`
+$kO%
+aW~{
+eon9
+zr*e
+/b)W
+:}/Xd
+"qVe
+eb)/
+6W&]`
++eIU
+iFxf
+cSJQ/
+zxxtx
+9trz
+w'A8
+]RC*
+NlAa?
+&X5j
+R	vw
+"]=]
++1f}
+cIL<
+GTHG
+WEL.J
+5jz=
+S1{y
+UW>s
+8y|r
+5cvC/
+`%i1
+5C@%G
+uHfG
+'B"!X
+FsEI
+HP{n
+$vCU
+o3E!F
+Psrq
+v<z`
+MG:Ryd
+[br'9W!
+a5T!-
+pxMM
+E%5Cj
+*r4L^hd
+7)HH
+T(r}b
+|j:#5
+V|b/I!
+mr9[Y)
+\S+X5j
+&3czjz
+EDE.Z
+t(@y/e
+$UHr
+XX6!
+/k6m
+_UFL
+[A-_
+40-[
+wY32$
+GuHi
++E42
+9+z(^u
+=X5j
+0)!%
+ADPJe
+>1>]
+P<itV
+|5h?Qk
+T;i'
+^O,e7
+d,c[
+<~t<
+7WoX
+@"k}
+b..K:yH
+UwFx
+})WUg
+S]"*9V
+%i11
+]i4d[0
+BGD_
+O6^!
+8>^Hn
+HMNu'
+zSD)%q
+8J"!
+?E;@@
+4SJI
+p D'
+wPe`
+N(Qy
+fuIP#Ne`
+F\YF
+y6|9
+TEyB
+\+s$
+]Is(
+}SxI
+&X5j
+KcoV
+`%Z)y
+[-$/
+`Sbc
+a%y*W
+&X5j
+\e$	
+1h:l
+Yswj:O2
+`QIM
+RTh>q
+P1Zy
+@Y$%?
+QI<,;
+`5Ptp
+6JBV
+UV5`
+3nY0?
+MlU(w
+p+:v
+`MMgS
+c"Ud
++zOl
+KTwg[
+F qY
+*PI'
+2G`i
+oyfM
+O):2i
+(K")Q 
+y(U)W9
+o|c``
+VV+ %
+.DtE
+%&{b%e
+C!!t
+VMT7
+u9\G
+k8tX
++]T{
+Ck6t
+gXOX
++\4R=72#
+.!qQV
+/=xO
+tZ	an,
+W",F
+ "u+
+jKM-
+Dt5;o5B
+lnRq
+e@/R
+P5Q[S
+#Pb+P*
+RJ]?
+iJo|
+8vAX
+VI{%#
+!HV`GQK
+w5pa
+~H=ED
+MA!]
+Y*|?
+YDW`W
+}LiJ)
+qA@9
+l"d1
+grkrK{`
+Ap\x
+jXgNS
++r1PRj$
+`]4[
+@Agva 
+#Sqt
+;./R
+$6MI
+l0xt5
+`MxeB
+xP5O8
+&`J)!%
+F&Q2f+(
+A.su7s
+aDH>Y
+[5;z
+,rWy;D
+L#o6
+g	Gq
+]"McJ@J
+k4a%3
+g\g Vt
+>Q8h
+Ur>,
+:?h8
+XQ@>
+qBZ6
+Cuqy
+aH1-1
+:Hce
+(XZN
+Rh02U
+i6nH	
+u]]\6
+*y/J
+Xdys
+(%,A
+!p`pF]
+_HbX
+1-co)
+n$d0
+MDKA
+[P$A
+jm>V^
+3a&Au
+(, }8
+y&g.
+IE\X
+`	rMvw,
+GqFl
+g	O(g
+C'ks
+X6@p
+?fCIi
+	Al9
+A((h
+o{sU
+BJ!a
+	]7t
+n<rb
+7%rF
+vAo=
+Y!E	&oi
+p$z;"
+zLxD3
+7H3($.
+7	i"
+>":	
+Bl@T
+bxLu
+B80{h
+Jb,H
+K#!/V
+LdL{
+!X?t
+fTwB
+>n_}
+XUG)
+tTr)
+?BGM
+5{G[
+s>s\s
+V6K8{{
+w]}zD
+ev4HBN
+7l8B
+Y)l-
+HG9B
+dQZcA
+a/5h
+6sTK
+&$V*o
+VmVP!
+`|M%
+3}(	
+UG_S
+8Bb%U
+OH6&R
+LCGt
+LBtE
+NnR5%
+XO\=U
+:Q5R
+ihLO
+KN>J
+S>	M
+&Y5M
+2;`q
+R^lD
+%/KJ"
+:<;"
+e#ac iL
+KZ\	
+TeEq
+=09'x40
+b##~
+K'.l
+B`Kb-(g
+#~*%<@=
+/Q{4
+nlP!Q
+&#dx
+3p@Jb
+<gVq
+4J=yo
+("_E0b^
+cohu~
+6S@0;u
+N=W+
+?S)99A
+p?f[
+H#UY
+&Axj
+ak'f
+f(vd
+B@{J
++[S8
+/{!Z,,oc
+P!B%
+B)R'3
+hV[#
+iu\PN
+Iro@
+4X&&
+t	M`
+g]'A
+ |[+(
+%@3Ef
+p(pN+Z
+MgH6
+2_9zS
+OWz%V
+)}5z
+BxM#
+2yfBQ
+w]}v
+8{WF
+Le_rkXb
+sRl]
+Y3/3
+a398J
+5C#?
+2 UB
+X\p-8<Ib4
+>Xw@
+-	f	
+g/]0
+ONxeB
+Ek=#8
+C,($
+O\}z
+S'Df
+|1|`
+|$Eg>
+`-Q9
+u{$YbT
+y%L[
+gl\4=
++wxn
+O/hS
+W^'D
+"/]J
+LrA:
+Z+-q
+A{:3
+JY!X
+;TEo
+>S.j
+'mpR@
+(8+Vo
+yA\$
+A2a 
+%7>0*g
+2m:.
+C@(4
+3:86n
+V(6?
+u	&_
+4GV=
+g*w=
+DLfkv`
+da)p
+A&x)}
+QLD+
+1='.
+2v3x
+t]!xt
+M)&s
+`A4af
+ZB`F  
+ILA!
+?Jbt
+6TH7;
+:QYM
+jWr;x
+VLq\
+hNb'
+'	B(
+U)3kQ
+X!BP
+WAUR&O
+>1FM
+b){<
+KQ1W
+`U|[
+.zHj0
+#cp 
+xki{
+X4)]=?
+i!qF
+IH,p
+EUb}
+e )z
+ TKY%
+T!K)m
+/JAB3
+ROd6J6b
+C@:#LDH
+kj^xB
+C=|S
+wF/'
+<x0Z2
+2=`-
+3QbU
+Y\yf
+!f:Q
+0zte'
+=RA8e /
+sC\2
+I@["o
+jw[i
+n#r"{
+@CZo
+Y5_sF
+[jqT"
+K8t:#\
+Qp	<
+!eTS
+d8/H
+I;Qv
+y.'>0
+>Y/p
+(x(	8
+9lmB
+9=n&
+\!]9
+d^MIET
+2XO^}
+AbOj
+\xVO
+5^ZZ
+z	}k
+5Ra@*
+oys5E
+0VoU
+g>aA
+1X5Cp/i
+BMVF
+Zg-z
+J#Yx
+ @DeXQ
+-</'_'
+-	?[
+NGo[n=
+KesI
+v-D*
+A^'M
+-h?t
+jieBd
+%|& ^
+\F1*Se
+Q`q-X0
+m97./y
+30')
+MFfp*
+_k#H
+3XsT
+a#+}
+#V>So
+< DR
+2E8G
+C2z 
+!"U$0f
+W6F_
+:H&)
+uTvH{
+l0kQs
+De?J
+w.v$
+8j^M)
+>[EB
+X'.b
+g![~J
+"*EZ
+WOMxeB
+$J#pp
+a:C-
+<L|en
+!EH*
+Al`;
+?mCG
+_W"	/h
+`\K-4ax
+J2y%
+ig@3
+K	(<
+Fd@GB
+YFEaY
+J}J'J
+ODa%
+EgSIrp
+{r&RS
+s-~1
+cs.^g
+$}@c
+{-@|n
+vv<*
+{4BK
+x}$Z2<
+S%[(
+H=P!L
+A~P'
+T	9K
+:o4m
+~i%'
+mP`w
+]-%H
+1d6\
+nGe	V[
+$1"l
+<	!J
+#GbTJ
+c8Jx
+MaFq
+$ C|
+AXcN
+Z&L'
+PyJU
+EICo
+/AkD
+-~-=
+"jA6
+$~|~q
+F!.	3(
+\=p/Q
+!!Yo1
+^Zi	a^
+}0_'f
+x[mD
+jVh5N
+nM^[
+wB46
+.17j[>l
+tcSZgB
+A?6_V
+F#+e 
+W=x[
+7sTN
+MsP_)EW
+?End
+/	5J
+9(H~(
+1yQB
+JGGM
+`~Z>
+m7y*q
+s)xlg1J
+#R\&
+e$SU
+XKTN
+XV.d|
+JAl`
+e?vI
+XdY+PI
+caAv
+z<^l
++D+2&
+@HH7
+b,=4
+j^7=
+$EN;
+kX^M
+R2\E
+?1dPi<
+7Lc<
+)rWC
+S[|o
+y!XD
+z$>0ez
+#e&Y
+n(07
+BLbGn
+#u]o
+R,{"
+C`%B
+4!Di
+ubz^c
+2.$,
+U~4y
+9eV2*
+@6kn
+X0L2Bh
+H50 
+w1ct
+r}k0X
+@=]>Ab
+<0jw
+1iZA
+4EW&
+	G8@
+e'u!(
+w_}n
++h@`.
+A=07
+mV$s
+ckDi
+Jh-uK:K
+%*;M
+3Zfv#n
+'V^p^
+ ho^
+qQq-
+|>4|H
+ae;B
+q\:ha
+`5,A
+<!'>
+l{nM
+*W|x
+ieFBI;
+n3]S
++~IYU
+-;Zk\L
+6+.D
+.8Zx
+x"	xR
++L U6
+>:^gp
+i'u?J
+T<Ll
++oR'u
+<HGJ
+r^n;
+H@9x$
+N/8C
+f*H;w
+ux7{
+cSq_
+!:)$t
+``on
+whI*"
+(*7/
+Fwe[
+ZRub|
+V:nfQ
+:~Dq
+Z+"z
+e<S%
+lMan
+&Eoc{
+"YZAW
+A<#@heO{
+ LBA
+>g&:c
+#?Rx
+n_'J
+vBT@r
+zfoq
+C2vJ
++\xteG
+=2Z8
+.zY,
+b#ic
+F}"6
+5%?"q
+nn=v>U
+*2q]
+5	qh\
+B')~
+fGan
+QwQV
+EGo|p
+P:D=
+kz8i2
+?RKJ
+(L<K
+Oe){
+R 60
+^G6"
+<{t-p3
+^S|f
+BX1[
+,6H+
+=(+3
+p"i4	
+Q>kDK
+$3gC
+%VQp
+d+z-
+=TJ"0/
+ox;4
+LrTN
+Z{o"
+p#|	
+>fLf
+$]'b
+G	>0
+g#0!
+6CX%
+UGe@
+@NJoP#
+N(6J
+Kitn
+^a-'ea/G
+lC\m
+;6	E
+#[`g
+bQN!yt
+H!KA
+@QZE
+r3IZ
+W{8o
+{xO)s
+.I':*P:
+[#-9
+zY}m
+fC`|
+5O;B
+VQ[6
+:xjJC
+{%r3
+4x3t
+%R>%
+g#9E
+B.Q'nX
+6J?k
+)z>l
+3Xg\
+J}^i
+`u\D/8
+nUW5
+H6Y?
+@O>@g
+"1/u
+lgeIv
+8{)'9
+`E99
+%}YJ
+p/V[
+uXEpSS
+=	Kd
+63%+
+R&L^'[;l
+dSgY
+x eI
+:g!a
+L|Oc
+IH4Z
+iwrEE
+h>K)
+B8Z>
+Wl,@
+59IV
++iFG
+SMVa
+L>E}C
+Y	9i
+[YB>
+[fDkED
+@$P.?
+	,2eX
+	X#1n`]
+bv0	)RXow
+=6y_H
+dOC	?
+)j2E
+8zok
+eGy8
+oi[5
+$4CO2&
+Q-#Ml
+oCB@
+*q?b
+l&qT
+\0Dd
+*n3t
+WuvA
+v>Nd
+4='8F
+EnU[R*
+@xKC
+4'Bl
+35xBtZ
+P&sbw
+ GQ[#S
+lF%KX>
+DFW-
+9VeM
+e& U
+aDakU
+$%lP
+KD]g9
+@~Z)$
+}}"+
+=i_jQ_U
+i$3w
+o1+Wla
+uWSb"
+vz,3
+79Yi
+kC/j
+(s 3
+a_%&m
+"1&hI
+`5C=
+$DT.D
+-#V6
+`EWQ~NG
+.iE\
+-Y}d
+*T_E
+jK<Y
+B59 
+}C@LT
+`2`$v
++#Q6
+rpP-
+zPlQ; 
+;Z2r
+e{65
+zEy|\
+	uf%Y3%
+]:AB
+[kKQ
+w.Q9
+.KZ+
+'re$
+X]4r
+]P=yl
+RM$Y+
+boV	
+0@^"k&9
+fzt)g
+g$2&u
+-Zz 
+u).a-
+ri-W<EA%
+En?l
+\TF\fc
+j,J^	
+82|<'
+"'U6
+Le[s
+A|5_X
+J%k&5
+0a91X
+XO~NP
+|zK^
+s[)1
+Rf)_
+9\!x KW
+8[Sk
+<17,
+@x=:
+31Rte
+m:ZI
+9[Be
+MkR>
+u?#Rp$z2 
+$J&e,
+NL4TY
+l,`F
+oQ|uo
+	FW&
+X3\]U
+M|.y
+n}.St
+`GHz
+|rVe
+YJ',
+DDKK
+YPT#
+wVQ/
+a/=!
+de_X
+WZ~k
+xi}X
+s[6Z /
+r$yq
+90i}0,i7
+!Mgg
+Ex,Gz
+Oqny
+8Ro 
+H;&l }|
+$@02
+ O\QT
+S]NE
+!qxj-
+:r18S?
+.E%5
+BL/ky 
+mj%P
+>YmPn
+q5JQi
+v2+#S
+B/WcI
+7OFM
+5-~\
+Yt]r 
+w[gv
+0*.i
+FJN(
+UP[+
+Q*n 
+5F+u
+K?n$s,=}
+r1=)=Q
+AxLD
+x1xt
+&1MU
+,yLj
+d(PZ
+	~qcA#
+JjhI
+*21_
+hg\nWG]
+ Q.fQ=mv
+2RCeC
+TLd{
+l)it
+pCE]~+
+v9Jm
+Q<c5
+_1_G
+tray_
+E]aI~bm
+#%]&z
+U$bZ
+'V^H
+1G)22
+3yW&
+9HYv
+(wt 
+TcB+L
+R {2
+Y%s5XP
+ET7lyJe
+28'a
+I;lu*0
++ s	_U_
+}`)a/
+5V%u
+r%yY~
+<\/k,
+-Ey#
+kKeU
+,jL{!
+9$99
+O6BXE0
+{)o9
+\P!OCc
+%Fb<	
+dIhc#
+zh3%
+r vp
+E+}	N
+F+~/e
+LEOX
+&zoH
+mb.ln
+ji*d
+L\*:nYJ
+-~o)
+DX\s
+7veVf+
+ 6WZ
+KJy/,
+#N6w
+B.v[
+V.sRm]6
+-R|TCs
+M?HQ)
+b',&O,{gLr
+EEu+9ieT
+v!<VO
+iHem
+2iI<
+#4YS
+}!K$e}
+Du}]
+lg"o
+.BG,
+ QQo
+=Xd6X
+Nr!e
+gvz9'G
+X'|v)
+ZNsX
+XRmn
+_/6M
+XL?l
+>X+N3N
+\]EI5
+G@9:
+2[Z;^
+",qp
+^pR.
++j?d*
+K|,'Y
+u)(4
+mnid!
+Lo,b
+~n%)
+#u\F0
+WMVs
+E?l]
+&/DJ
+EruEN
+wXrN'
++Qby!
+"D+,
+^pCn
+lfYR
+!\5$
+JZv!
+ha.P
+l3]a
+_'S"-
+T6$ \
+|IZj,(
+ipue
++!0}%l
+ B(]GKr7H[
+A!A~
+<-+bn
+"IV?
+'q!u
++%Bl
+r,':
+EFAW|
+*EBU
+%bR0#X
+y[OA
+S0K(
+X"1C
+Um0,
+Uh5S
+CIm}^NAO
+dmyP
+'Fn 7
+u}Zi
+@&[j
+5RN"}/
++AU'
+ja\ R
+XowO<
+"}##
+-=SrKnWS-
+Qczg=
+D;5Z
+L'^S
+MYA\#gSj|r
+H,EZ
+uSMAr
+D+bn
+bHD`jx1
+WT"l
+MG^n
+'\bLz
+G9pOn
+F}}Z"
+B2A]
+QMJ&FT9m
+jbkF)>v
+y9XSx
+2D8|
+FF~Z
+Ok4'
+e:%-
+7Hr+e)
+omwBM6
+UR+T
+hlIl
+$tEc
+fvbFZ&
+pc|8
+IiAYuL08
+>Y0<F
+2eIA
+XC/+S+
+aFmL
+j-p3u
+3.ay\Xq!
+ifw 
+V,+:I$
+fL+ZO
+ WX%
+vOP{
+Lj2cO
+<m%=D
+g-^68
+e\"L
+^+=b
+qHWM
+dn/HkE
+i=b)y
+^.	}Yx
+<R85`
+Kjm=
+b+9)
++G f
+ 2u%
+UtU$
+!-^.
+qR6k
+,0gD_5
+*TZOl1
+rqyP
+jw5)(,
+D\M	
+ieRE
+;)/>
+]iMPY+.
++j-<
+dpKR]
+MT'R
+DxPRB
+[J}	ZzF
+s3|Ik;
+=sB'|Q
+X*0L
+}8RsYTHJ
+`!ED
+K9G-
+'z#g
+I:\Q
+_y#^
+PH}p
+/;|"
+T=a&,
+7'|\
+6Z_$5
+->-qx
+ *Ph
+*m=q%
+lW,H?
+._kG
+w;,5
+~:*Z
+X7Zlq
+X&dd
+sR.\
+-Q?M%:
+Z7?w
+fx+3
+a~<5?
+R2dx!W
+ZYkY4
+Duc	
+*DWo
+\uQ0QKX
++-O|t
+L_<$
+]zOh
+W%ng|
+X+dh:,
+F{ d
+M]J?
+>1D8[
+g+^v
+OHtU
+Uo+/
+I4mZ
+emEH^
+QZse
+juB=
+Uyar
+-	Qi
+(0X5~~
+V3T@N
+UeG|	(
+:l3K
+=X3q
+c^\B
+QNR?n$
+N+{hu
+PJCrl
+&]G%
+BDW_
+}5~>{
+xku9
+XiZ9
+V{sZ
+s+Q_
+h=+Qg
+pvHZ8
+$G=#
+n{[ZZ
+Re+ma
+2iEd
+(rkS\
+[6WKr^j
+\rrF
+pW>"
+%[{:
+mp3`*/
+H3`-
+eOeo
+4(,[
+XS=Q
+E*jSP
+ouVCv
+"tE<
+CQ'e
+g$Ng
+|'G]%F)
+~fdj
+-y4xZ
+B[%}
+WU2	
+	:Yw>U
+0LhK
+`F6Z
+2qd8o
+HTo	
+m2aQ
+XS%LE
+vT@<
+v%8$v
+BE.|
+"6K)
+RU[EC6
+Q]R7
+1.g_
+n#=>	
+[n7#
+crW-H
+j=l=S*
+J[9:[i
+0Xi:aD
+ r$hS
+gJIo
+YM}K
+'GA`*P
+Nc\U
+QhA^VP
+>APs_T"
+ITsK
+k!qC
+>R)*"
+V6K{
+fhnM
+\K==
+E_m&i
+Q-C#
+pR{C^
+0GZY#
+fMFb
+VKkmC
+TRs/(jL
+af&Y=
+&sa.
+1ha:
+u5UDS
+zIO5
+9C&/
+{3O#*
+j>`E
+mw^)
+`hM$<l5
+eOO&
+h!+,
+sZG|-
+^S>n
+rOp[^
+V=vL
+k##A
+0\q(
+gQ6h
+AtU"
+(HG^
+d%mB
+=dpV
+pYEEg{
+2,f)
+:R\!o:
+,F-=={
+~G>qC
+}vxY
+]n]"~
+8y8eR[
+^Mw7
+LaF6
+Gt+A+
+Cu!	:
+0p`Jz
+VVgg
+2jM(
+7*=9$
+!\	i
+@Yni
+:`9	%,
+dVj=ni
+y}'U-F
+-Q1$
+BUv%
+Q/Iu
+X;|^
+6pq0C6
+'5j!
+mM<9!
+wW2t
+tZ,z;
+ERw~
+9!H:j2m
+`5ax-g
+1_x,
+{3F`	v
+'lPMH
+\`g[
+5IC*_
+j|i0
+S_Z 
+L)U[
+X-^k
+V4O%
+| ONU
++[ljhf
+1"wI=w
+)C>`
+H`hO
+xqFx%
+\`2l
+3A5&
+`E5;
+ 9:/u
+ +h.
+sxCR
+==IG
+'lPg
+oMu]-~
+<Kq]
+UT4t
+d2/^
+m|Sd
+QSUA
+Y^PX
+w|wE
+,kvNB
+0$eSG
+Jjo-
++5#F
+!)&l
+J*~l
+C	7b
+V|4^
+Z[<d
+sT3N
+f/!g<;b
+8z;{
+N@R./
+o)UsH
+~~l)
+hFWQKg
+):^)y;+P
+~.-lM
++\T%
+T0oZ
+1YV&
+g!Op&
+fzLG
+ll%B
+5U7*
+[I&i#
+YuQ@SG
+hKAnM
+*"_a
+)<*Q
+]Bte
++:Su
+$?vD}5
+jc.gA
+YAt'
+RRg$
+sj(S
+5kP\
+0u+VU
+j3'|
+Z:|R
+zvFT-Z
+S'"w
+N6Xn
+l)f&Y
+#)fE
+xm~"
+CA-S+
+0+O6
+ZZkl
+-XKT
+1;};zNe
+(i]F
+X-^f(
+Cga>
+4~"#
+njt4
+TPuO
+\aU#
+%Tbj
+wiA0
+'|'H
+u]MT
+-Xa)R
+$:BT
+,U&(
+lVt5
+{X:f<
+~l0BQQ
+G_EF9
+5^W4yj
+Z|v8
+-pZ!
+X!zt
+:a\(4
+5`vp
+@TM/
+uG07
+5&M\]
+rLCh
+Cc8?v
+1Fy%
+(2exH
+^|4<
+[HRa|<
+>S\s8
+tXn'
+A~z^
+4draE
+`|.n
+ _L$p
+m*G}
+]Ap3
+5zC"
+vW9,
+#>TW
+('=]x
+tMP)
+^ea^
+dy.u
+@RNdB
+$O1(9
+AS8,
+v0\Z
+jIW:
+FJ~g
+cSOJ
+]SV0
+F']`
+Gc#~
+.o/H:
+_dOB
+-_S"
+Z0y6
+Fl|F
+~1)>G
+,3a$
+ }HOp
+pZ}8
+*(`3
+=?8c,P	H
+3SG4Kx/
+cXvD
+;`z2
+p,`m
+_h0/G9`n
+cux+
+!"fO
+tMU("
+~1z@
+Oanx
+rHG	
+}DT\
+z{@=c)
+(;t+
+3d5\`
+q]0!
+7jy*
+uJ-'c
+_.zA
+]!<PP
+H9y7
+,pt(
+th:|
+Xr82
+@g:@j
+qFG1]
+U4jt
+0Z!5
+YOM&
+XH?]
+3>9y
+hlV;0:
+`z	[
+[Ni.
+ X#s|
+)>2{
+assL
+'<CO>
+e(+>
+Qjp<
+!FWv
+iGgz
+bio'
+<d=4x
+@;\MW
+nw/I3
+s:u=b
+&i0k$
+sin;
+|d8>
+OK]{
+t['=q
+D1%V
+32fezy
+uYJr
+1J+p
+J(j$
+M6Xt
+oZ|^
+p]Q+
+t&h4
+3Qas
+TwO;>
+1[F?
+w op?c
+|qxW
+8?}4
+:RDS
+M e/
+d|Ld
+MMMb^mX
+Vy;2
+g=[l
+;93EZ
+]EY8\
+8`,.u
+Z$cP
+XwIa
+IDe-
+GVw_
+hk|S
+kRi<
+zbor
+E 3V
+2H	Xu
+\o!Xs
+?"}0
+'FCXC!
+#+XFJ
+E#-.jLZ
+B}G"
+5@	ks
+E<\I
+*!QY
+Z|o3
+%5>f
+$`Eu
+/?RT!V}P
+fW]*
+0&nr
+:NT5
+eG%8
+IEND
+IHDR
+gAMA
+	pHYs
+IDATx
+@b0t
+5d0	HD
+XNe0
+XNa0
+XAa0
+["b9
+XNe0uK
+XNd0
+SwSED
+K"b9
+XNe0
+K]S/
+qq<p
+gUrO%
+IEND
+IHDR
+IDATx
+yv9u
+*MZ $@
+hE+Z
+oIM2
+HGEo?
+E*,[b;
+~R&i
+vvtn_
+zjxp
+fP[R
+'sy{
+H]K{K
+exU5
+tl,'I
+'3~v
+tllec9
+`;66
+uu4uD
+ewk2
+MR:X
+Fw{w
+\2e:
+XY!J
+2Bt%c
+vG	P 
+`&WO
+r$I[a
+E9J	
+`4li
+?\Cge
+Xv2MxfR
+HjQx
+Kx:6v
+@a{^
+;+LI
+Vx<DB
+N`Hx 
+Ko:~
+0uaP
+.l4l+
+Ycf2
+ nYH)q
++Pm,O
+PH%p
+|Rs.8
+r$R*,
+bx8`KE
+`$)Z
+HIei
+GJlK
++IX6u
+6V{;
+']A<
+e&&_
+"tvtqH
+~3s>
+Emy?
+J|al
+2XB][
+G]G3
+I]tGa
+`ow3/
+x2Aww7
+6|ZzC}
+#vw4r
+bOG3fi
+J:(M
+[ZM[
+	O_a
+FY*w
+wcN(
+QV]~
+Nr.Ln8
+Uhqr
+-%J*0}
+$^^7
+"-;3
+.=2[j8x
+|CIy
+CgQSV
+rc]+
+2},{
+AS04
+>q3om
+\OEi
+-;8m
+bTB"4
+]8]Q&
+&$lL
+f%O]y
+WeF>]
+\N)i
+usww6
+)5K\
+G`+Tw
+60}fFDv 
+qJM 4
+L?a#
+2bBz
+5VmZQ
+Ovof
+ WlXQR
+u@!-
+oCIIA"0
+*a-o4
+uH%]$
+ug~%+
+t[QlMb
+;fCR
+fe	fU
+~67o
+;pdN
+=v4l
+ISf1k
+BC#b%
+nERJ
+lYJc
+ChJd
+q#))	
+1b2O/
+`wg=q;
+-4"*
+CAvt7r
+`{G=
+<'y\h
+.|Ui
+2.j*\
+iO.%
+\^Y=
+]67m
+/c96
+}4M(/
+yjO/["
+Qd3//z
+K +V
+I]k=RJ7
+EbQZ
+iYh>-
+JOE"
+8/RJ
+*a`u-
+3]oZ
+Hd^O
+JB=Edi
+rlL#
+9F]#f%X
+t=L~
+R]ZA
+	CF{
+`XIk}4
+9'8`
+XAVY
+FVvnc
+l7zws=
+1*J1
+5liX
+^qI<
+pE[B
+)~#{j
+0,nz
+kwlJ
+\s+W
+Hd80M
+J7>R
+i=Tn
+=LSw
+2||N
+t`h:
+%;y}
+q@EY
+NkW;
+chy-
+pK4A
+u=TF
+_$S-
+k'4w
+A7%gh
+3Yhd
+3M|>
+?GJ_
+QSY]
+yNe/i
+Q`'S
+2d`T
+A9n?
+N]'T
+>67m
+!4CsG0
+	vw4
+]N,s}p
+q=b%@(
+}piQU
+ 7KP
+b',f
+BNw7
+Fy	]
+^&L54
+}(_a
+a %B
+Mvt5
+eb2@Gz
+\5JB
+Ss3B
+")7[
+]O0g
+,/3e
+v^zH
+@uiE
+#rHO
+DK"O
+l?5Qu
+d/<E
+Mw3~
+qJ}\2
+n6vnd
+)%hjkfG
+JcG3O|
+:kvo
+`YIb
+>_RU
+jZ;;h
+Rezj
+c/B	
+#P.'
+1tMC:*7
+EZk!t
+<FANCe
+}h-rS
+4,ag
+v,l[)
+/,jql
+'BVS_
+r+o%
+//i]?
+2I&I
+Cv2{
+O8n|
+lyMu
+sjC$
+N)6{
+;q>n\
+m)/nx
+v[jO
+D:n:VI/
+kN8{
+{$efi
+Ezw2
+@w"J$
+0>#`
+7445|
+\rUj)
+&9Oy
+!ZO}
+EZsq
+KKv6lmL
+?~qi
+gmHQ
+(4GX
+Ep(Z
+IEND
+IHDR
+(yIDATx
+3M#"
+4,J{
+Ko-t
+`/A-
+@;t;
+{4+<6"
+zS_E7
+Y(;<&%
+v;F*
+w~N6
+<59,Jc
+\bXd
+i(A:SG
+P|Q1
+h	i	
+0GR<`
+Q<>Y
+Qx.7O	
+O=-\
+nFh5
+nu!G
+Vq7r
+((,by@
+geTb
+=CqM
+zlEg9h
+dH1F
+0Udf)
+:[RJ
+bzo2
+}u:bp~
+c3g+
+c4Y5
+78o(
+53Mb
+RzYc
+e6`^x
+c@*eCp
+?N1o
+Cdob
+:UO!E
+`N7GQ*
++KLV
+2c&-
+^o*Zm
+y}'e'
+#U+}
+A/WSE
+|X1/?
+8]RJK
+Csm|f
++C]u
+3Cwy0Zn
+mmtwkrP
+/^1dy
+:L[~?
+SeW+
+v3Lv
+J.+0
+OCY!
+2tV*
+ykh^
+yr3K;5
+")14
+lIPX
+z,?h\
+%Z\CjtK
+eg\#_K
+85#"V
+,5P=
+]|lk
+`+w@
+d'@?
+VG ;
+fs[u
+Ra X
+,J-QZ
+9/d/
+TQT,
+	rmpV
+Zads
+cZRv
+7y*%6	
+#_~-
+N.YJ
+VHqX
+yz<m
+7YXP1&
+ *zB_
+$Qh;aArPP
+fATs
++U8`
+x@No
+e|2+[
+(Lv-
+&?H3t
+q*1I
+JX^^?
+<Dm5c
+Nayy
+2427!m
+`/EY,
+[,m,j
+tK#Z
+DQ#T!
+SQ&S
+z,Slf2
+2yh4e
+d0X8V
+W/,$
+hVw^
+pfPm{
+o"n|">
+7}=n4
+ueXy
+2&?O
+GMav
+4_GsX
+8deeA
+RiR[X
+IEND
+IHDR
+bKGD
+tIME
+IDATx
+ixTEr
+wa!	!
+)''ghvvv!
+6x2/
+9.Vm 
+d%!A
+"lk%wK{y
+0G#|
+M|D0
+ 9S(
+I*XI'c
+sknn
+A.2!
+eunP#
+IAtA
+pd\(
+,3HQ
+?0oP
+V9'Q
+#_bwm
+#.^	h
+ke/m1H`N
+6h@;
+CL=m
+e[bl
+bERML5
+<[.^
+F`\0
+u.7qCcZ
+f\m1g
+%D>T#
+	n_%
+06M@
+$ta"'
+"6KaO
+J%tp+
+;UE#
+N1N\
+Cess
+1)O3
+I< i*M6`
+M$0l2
+gT'L_m
+ tbp
+IEND
+#V+>]
+!UXm
+#WG]u
+&[8Rj
+$Wrf
+(\ :s
+'[3R
+'[2Y
+%EqU8_
+"Enc
+'[%Sr
++^iGh
++_ N
+<l0J
+2d-?h
+{\rtf1\ansi\ansicpg1252\deff0\deftab708{\fonttbl{\f0\fnil\fcharset0 Tahoma;}}
+{\colortbl ;\red0\green0\blue0;\red0\green176\blue80;\red0\green0\blue255;\red240\green0\blue0;}
+\viewkind4\uc1\pard\nowidctlpar\cf1\lang9\f0\fs20 Your important files \b encryption\b0  produced on this computer: photos, videos, documents, etc. \cf2\ul\b{\field{\*\fldinst{HYPERLINK "viewfiles"}}{\fldrslt{Here}}}\cf1\ulnone\b0\f0\fs20  is a complete list of encrypted files, and you can personally verify this.\par
+\par
+Encryption was produced using a \b unique\b0  public key \cf2\ul\b{\field{\*\fldinst{HYPERLINK "http://en.wikipedia.org/wiki/RSA_%28algorithm%29"}}{\fldrslt{RSA-2048}}}\cf1\ulnone\b0\f0\fs20  generated for this computer. To decrypt files you need to obtain the \b private key.\par
+\b0\par
+The \b single copy \b0 of the private key, which will allow you to decrypt the files, located on a secret server on the Internet; the server will \b destroy\b0  the key after a time specified in this window. After that, \b nobody and never will be able\b0  to restore files...\par
+\par
+\b To obtain\b0  the private key for this computer, which will automatically decrypt files, you need to pay \b %AMOUNT_USD% USD\b0  / \b %AMOUNT_EUR% EUR\b0  / similar amount in another currency.\par
+\par
+Click \'abNext\'bb to select the method of payment and the currency.\par
+\par
+\cf4\b Any attempt to remove or damage this software will lead to the immediate destruction of the private key by server.\par
+{\rtf1\ansi\ansicpg1252\deff0\deftab708{\fonttbl{\f0\fnil\fcharset0 Tahoma;}{\f1\fnil\fcharset2 Symbol;}}
+{\colortbl ;\red240\green0\blue0;\red0\green0\blue0;\red0\green176\blue80;\red0\green0\blue255;}
+\viewkind4\uc1\pard\nowidctlpar\cf1\lang1033\kerning1\b\f0\fs20 It was not able to find payment receipt server on the Internet. This could happen due to following reasons:\par
+\cf0\par
+\pard{\pntext\f1\'B7\tab}{\*\pn\pnlvlblt\pnf1\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\cf2\b0 You are disconnected from the Internet. Check your connection!\b\par
+\pard\nowidctlpar\par
+\pard{\pntext\f1\'B7\tab}{\*\pn\pnlvlblt\pnf1\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\b0 Make sure your current time/date is set properly (used for server search).\b\par
+\pard\nowidctlpar\par
+\pard{\pntext\f1\'B7\tab}{\*\pn\pnlvlblt\pnf1\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\b0 Your ISP has blocked an access to this server. Try to use another ISP, or \cf3\ul\b{\field{\*\fldinst{HYPERLINK "proxysettings"}}{\fldrslt{configure}}}\cf2\ulnone\b0\f0\fs20  proxy server to bypass this limitation.\b\par
+\pard\nowidctlpar\par
+\pard{\pntext\f1\'B7\tab}{\*\pn\pnlvlblt\pnf1\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\b0 Server is temporarily blocked due to complaints of anti-virus experts. Keep waiting, this will get back to work soon!\b\par
+\pard\nowidctlpar\par
+\b0 Anyway, do not worry for your files, if you entered payment details correctly, your key will not be destructed until your computer payment status is confirmed.\par
+\b\par
+\cf1 This message will disappear within 5-10 minutes, after you eliminate the error cause.\cf0\lang9\kerning0\b0\par
+{\rtf1\ansi\ansicpg1252\deff0\deftab708{\fonttbl{\f0\fnil\fcharset0 Tahoma;}}
+{\colortbl ;\red0\green0\blue0;\red0\green0\blue255;\red0\green176\blue80;}
+\viewkind4\uc1\pard\nowidctlpar\cf1\lang9\kerning1\f0\fs20 MoneyPak is an easy and convenient way to send money to where you need it. The MoneyPak works as a \lquote cash top-up card\rquote . \par
+\b\par
+Where can I purchase a MoneyPak?\b0\par
+MoneyPak can be purchased at thousands of stores nationwide, including major retailers such as Walmart, Walgreens, CVS/pharmacy, Rite Aid, Kmart and Kroger. Click {\field{\*\fldinst{HYPERLINK "https://www.moneypak.com/StoreLocator.aspx" }}{\fldrslt{\cf3\ul\b here}}}\cf1\ulnone\b0\f0\fs20  to find a store near you.\par
+\par
+\b How do I buy a MoneyPak at the store?\b0\par
+Pick up a MoneyPak from the Prepaid Product Section or Green Dot display and take it to the register. The cashier will collect your cash and load it onto the MoneyPak.\par
+\par
+\cf3\b{\field{\*\fldinst{HYPERLINK "https://www.moneypak.com/"}}{\fldrslt{\ul Home Page}}}\ulnone\f0\fs20\par
+{\field{\*\fldinst{HYPERLINK "https://www.moneypak.com/StoreLocator.aspx"}}{\fldrslt{\ul MoneyPak Store Locator}}}\cf1\kerning0\ulnone\b0\f0\fs20\par
+\par
+{\rtf1\ansi\ansicpg1252\deff0\deftab708{\fonttbl{\f0\fnil\fcharset0 Tahoma;}}
+{\colortbl ;\red0\green0\blue0;\red0\green0\blue255;\red0\green176\blue80;}
+\viewkind4\uc1\pard\nowidctlpar\cf1\lang9\kerning1\f0\fs20 Ukash is electronic cash and e-commerce brand. Based on a prepaid system, Ukash allows users to purchase and then spend money online.\par
+\par
+Money can be purchased from one of the reported 420,000 participating retail locations worldwide, or by using the company\rquote s website. This electronic money can then be used to pay online, or loaded on to a prepaid card or eWallet.\par
+\par
+You can \b combine multiple values\b0  of your Ukash into a single amount and have your new Ukash Code and value emailed to you if you want. You will need to {\field{\*\fldinst{HYPERLINK "https://www.ukash.com/en-GB/registration/"}}{\fldrslt{\cf3\ul\b register}}}\cf1\ulnone\b0\f0\fs20  at Ukash.com, login and then go to the Manage Ukash area to use the Combine tool.\par
+\par
+\cf3\b{\field{\*\fldinst{HYPERLINK "https://www.ukash.com/en-GB/"}}{\fldrslt{\ul Home Page}}}\ulnone\f0\fs20\par
+{\field{\*\fldinst{HYPERLINK "https://www.ukash.com/en-GB/where-to-get/"}}{\fldrslt{\ul Get Ukash}}}\cf1\kerning0\ulnone\b0\f0\fs20\par
+\par
+{\rtf1\ansi\ansicpg1252\deff0\deftab708{\fonttbl{\f0\fnil\fcharset0 Tahoma;}}
+{\colortbl ;\red0\green0\blue0;\red0\green0\blue255;\red0\green176\blue80;}
+\viewkind4\uc1\pard\nowidctlpar\cf1\lang9\f0\fs20 Bitcoin is a cryptocurrency where the creation and transfer of bitcoins is based on an open-source cryptographic protocol that is independent of any central authority. Bitcoins can be transferred through a computer or smartphone without an intermediate financial institution.\par
+\par
+You have to send below specified amount to Bitcoin address \b{\field{\*\fldinst{HYPERLINK "bitcoin:%BITCOIN_ADDRESS%?amount=%AMOUNT_BTC%"}}{\fldrslt{%BITCOIN_ADDRESS%}}}\b0\f0\fs20  and specify the transaction ID, which will be verified and confirmed.\par
+\par
+\pard\cf3\b{\field{\*\fldinst{HYPERLINK "http://bitcoin.org/en/"}}{\fldrslt{\ul Home Page}}}\ulnone\f0\fs20\par
+{\field{\*\fldinst{HYPERLINK "http://bitcoin.org/en/getting-started"}}{\fldrslt{\ul Getting started with Bitcoin}}}\cf1\ulnone\b0\f0\fs20\par
+\pard\nowidctlpar\par
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?><assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'><dependency><dependentAssembly><assemblyIdentity type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'/></dependentAssembly></dependency></assembly>
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level='asInvoker' uiAccess='false' />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>
+0"070E0U0[0h0s0
+0R1X1
+2.2p2
+3 3z3
+4 5-535D5o5z5
+5i6~6
+7'7A7b7r7
+8)8/868=8N8_8x8~8
+9*969
+9L:m:{:
+;=;D;K;S;\;b;h;n;r;w;};
+<"<3<9<?<G<O<X<^<d<j<n<s<y<
+=0=7=P=V=
+>(>.>K>Y>
+0;0A0M0S0
+0=1C1a1g1s1y1G2N2T2b2
+3"3=3V3_3d3
+4[4a4
+5H5P5Y5_5j5
+5.6M6V6`6
+6,7]7
+7#8b8
+8.9A9t9
+:':E:L:T;^;p;
+<1<G<q<
+<*=L=
+=	>->3>X>*?3?U?
+0>0Z0
+1.1=1a1
+1 2N2^2
+383Z3
+4H4V4
+4&515T5
+566D6U6q6
+7<7U7q7
+7K8Y8f8~8
+8	9g9t9
+97:W:`:n:t:
+<!=;=d=<>D>c>
+?h?z?
+0L1c1%2,3p3v3
+4&4T4
+4A5p5
+5#60696P6b6w6
+6"727i7}7
+8&8b8w8
+9	:6:>:D:J:S:Y:_:e:i:n:t:}:
+;U;];c;i;r;x;~;
+<c=l=
+>6>a>
+>(?D?T?d?x?
+0!0C0J0X0f0m0t0
+11171^1p1
+1"2j2
+3$30363?3F3K3W3a3u3
+6H6V6
+8$9)989G9T9`9l9x9
+:2:=:s:
+;R<g<
+=&=6=
+1'1<1
+2a2k2|2
+2C3S3]3
+4&4-464J4
+5W6g6
+6V7\7j7
+9%959
+>"?2?
+1?1O1`1d1h1l1p1t1x1|1
+1R2n2
+3/454E4K4
+5G6^6
+737K7Q7t7z7
+7B8T8
+9)9/9
+97:=:N:T:
+:#;0;7;B;J;V;\;g;q;v;
+<!<`<
+>#>)>/>8>>>D>J>N>S>Y>b>h>t>z>
+?<?S?
+0)0B0_0q0z0
+262<2N2W2g2o2u2{2
+3:3J3P3d3
+42494F4`4g4l4
+5-53595B5H5N5T5X5]5c5p5v5
+6*62686>6G6M6S6Y6]6b6h6q6w6
+9.969<9B9K9Q9W9]9a9f9l9u9{9
+<8=E=K=
+/050o0
+0"131N1`1g1
+212@2F2d2
+3+4X4
+5 5V5]5
+6)6S6k6u6
+7!7*747>7O7c7v7
+8)828:8?8G8R8\8m8r8~8
+9&9W9f9v9
+:P:e:
+=4={=
+>!>%>*>0>9>?>g>
+?1?7?J?P?q?
+0)070>0V0k0r0y0
+131@1T1k1
+1*22282>2G2M2S2Y2]2b2h2r2x2
+2#3H3W3{3
+314L4n4
+6'626J6W6k6
+6n7~7
+8'818F8M8X8i8
+8$9g9u9{9
+:?:i:
+;#;D;Z;u;
+<:<Z<
+=8=H=
+>->B>
+>`?f?
+1:2f2x2
+3S4f4
+475@5X5i5~5
+6!6.676d6
+6!7.7
+8$8(8,80848K8l8|8
+9/9Z9
+:!:':-:3:7:<:B:O:U:q:y:
+;);/;H;P;V;\;e;k;q;w;{;
+;%<:<Q<z<
+=+=7=W=
+>9>J>^>r>}>
+?0?6?X?l?r?
+0!040C0[0}0
+1*1N1[1v1{1
+1>2Z2
+3(383^3z3
+3#484v4
+465U5
+6'7]7
+;n;t;
+<%<+<1<:<@<F<L<P<U<[<d<j<v<|<
+<2=:=@=F=O=U=[=a=e=j=p=
+>#>,>2>T>Z>w>}>
+?)?/?k?q?
+>0D0Y0a0g0m0v0|0
+082~2
+233F3c3i3
+4(494N4
+8-8A8R8
+:#:^:
+=/=V=w=
+?/?J?e?
+0	010B0j0z0
+1W1`1x1
+172x2
+2D3d3i3t3
+4=5J5h5y5
+8 8)8/8:8_8j8}8
+9*9:9O9s9
+; <><E<]<u<
+=3=9=Z=j=
+>i>o>
+?+?1?G?]?e?o?v?
+0D0R0|0
+0C1P1i1
+3+3H3Y3e3l3|3
+8-9:9`9
+:o:v:
+=-=4=D=T=Z=y=
+>F>[>
+>(?6???
+3"353<3O3V3j3q3{3
+464=4Z4
+5*505O5
+7/8?8p8
+9<9n9
+9P:v:|:
+;5;\;
+<?<k<
+<"=G=W=
+>->4>F>M>
+>-?G?O?U?[?d?j?p?v?z?
+0L0H1f1w1
+1H2P2Y2_2g2x2^3d3j3
+`5d5h5l5p5t5x5|5
+7 7$7(7,7074787<7@7D7H7L7P7T7X7\7`7d7h7l7p7t7x7|7
+8 8L8x8
+8(9T9
+9@:l:
+;L<x<
+< =L=x=
+=T>X>\>`>d>h>l>
+@2D2H2L2P2T2X2\2`2
+3h4l4p4t4x4|4
+5 5$5(5
+787<7@7D7H7L7P7T7X7\7`7d7h7l7p7t7x7|7
+:$:(:,:0:4:8:<:@:D:H:L:P:T:X:d:h:
+< <$<(<P<l=p=x=|=
+$0(0,0004080<0@0D0H0L0P0T0X0\0`0d0h0l0p0t0x0|0
+
+
+
+floss report:
+INFO: floss: finished execution after 18.59 seconds
+
+FLARE FLOSS RESULTS (version v2.0.0-0-gdd9bea8)
++------------------------+------------------------------------------------------------------------------------+
+| file path              | ffeae4a391a1d5203bd04b4161557227.exe_                                              |
+| extracted strings      |                                                                                    |
+|  static strings        | Disabled                                                                           |
+|  stack strings         | 0                                                                                  |
+|  tight strings         | 0                                                                                  |
+|  decoded strings       | 3                                                                                  |
++------------------------+------------------------------------------------------------------------------------+
+
+---------------------------
+| FLOSS STACK STRINGS (0) |
+---------------------------
+
+---------------------------
+| FLOSS TIGHT STRINGS (0) |
+---------------------------
+
+-----------------------------
+| FLOSS DECODED STRINGS (3) |
+-----------------------------
+Global\
+UYo4
+Vo5Ng
+
+
+
+
+ssdeep:
+ssdeep,1.1--blocksize:hash:hash,filename
+6144:xucUo8XEe1jP5lAtpfWgTO3x5N22vWvLRKKAX5l++SygIzt:xu3PXEe1jREVT85I2vCMX5l+ZKZ,"ffeae4a391a1d5203bd04b4161557227.exe_"
+
+
+
+md5sum:
+ffeae4a391a1d5203bd04b4161557227  ffeae4a391a1d5203bd04b4161557227.exe_
+
+
+
+sha256sum:
+81fc45c95bdb421257645b4ff91a6afc82201d3ffe570c059994d79ff1484f90  ffeae4a391a1d5203bd04b4161557227.exe_
+
+
+
+sha1sum:
+7c7013dd8def75c94828b40ffa139b6d89ec4683  ffeae4a391a1d5203bd04b4161557227.exe_
+
+
+
+
+
+
+
+
+
+
+manual analysis:
+
+found following domains: 
+
+- http://aahefemtirnk.org/home/
+- http://aclhbsysmskpda.com/home/
+- http://agyfgxwgxbrmaqs.ru/home/
+- http://aitwlnoomcnagsy.com/home/
+- http://aohpqqtisucnd.net/home/
+- http://arrbtqqynpll.org/home/
+- http://asnalnsyawsfcbt.net/home/
+- http://aybqealgbbfs.com/home/
+- http://bapijavjojbu.info/home/
+- http://bbfpfjxteqluws.biz/home/
+
+(list of all domains contacted available on VirusTotal
+
+
+
+-IP: 212.71.250.4:80
+
+
+
+Conclusion: Ransomware with Crypto Miner. 
+
+Since the File is from 2013 check for relevant updates, if not updated block all relevant domains and IPs found
