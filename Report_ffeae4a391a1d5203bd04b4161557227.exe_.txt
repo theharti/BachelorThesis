@@ -5739,6 +5739,6 @@ found following domains:
 
 
 
-Conclusion: Ransomware with Crypto Miner. 
+Conclusion: Ransomware, with included crypters as well as contact via http post requests to several domains. 
 
 Since the File is from 2013 check for relevant updates, if not updated block all relevant domains and IPs found
